@@ -1,0 +1,101 @@
+name: 'Build and Test LLVM Unit and Regression Tests'
+description: 'Builds LLVM enough to run unit and regression tests.'
+inputs:
+  targets:  
+    description: 'Which target architectures to build for.'
+    required: true
+    default: Patmos
+  default-target:
+    description: 'Which target triple should be the default.'
+    required: true
+    default: patmos-unknown-unknown-elf
+  enable-assertions:
+    description: 'Whether to enable assertions.'
+    required: true
+    default: false
+  exclude-reg:
+    description: 'Exclude regression test. Should be a pipe-separated list that also starts with a pipe.'
+    required: true
+    default: ''
+  include-only:
+    description: 'Include tests, testing only the given. Should be a pipe-separated list.'
+    required: true
+    default: 'Patmos'
+        
+runs:
+  using: "composite"
+  steps: 
+    - run: echo "::group::Check Arguments"
+      shell: bash
+    - run: ${{(inputs.exclude-reg != '') || startsWith('|', inputs.exclude-reg)}}
+      shell: bash
+    - shell: bash
+      run: |
+        echo "Creating Build Folder '$GITHUB_WORKSPACE/$BUILD_PATH'"
+        mkdir -p $BUILD_PATH
+    - run: echo "::group::Configure LLVM Build"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+        DEFAULT_TARGET: ${{ inputs.default-target }}
+        ENABLE_ASSERTIONS: ${{ inputs.enable-assertions }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$LLVM_PATH \
+          -DCMAKE_CXX_STANDARD=14 \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_PATH \
+          -DLLVM_TARGETS_TO_BUILD=$TARGETS \
+          -DLLVM_DEFAULT_TARGET_TRIPLE=$DEFAULT_TARGET \
+          -DLLVM_ENABLE_PROJECTS=clang \
+          -DCLANG_ENABLE_ARCMT=false \
+          -DCLANG_ENABLE_STATIC_ANALYZER=false \
+          -DCLANG_BUILD_EXAMPLES=false \
+          -DLLVM_ENABLE_BINDINGS=false \
+          -DLLVM_INSTALL_BINUTILS_SYMLINKS=false \
+          -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false \
+          -DLLVM_INCLUDE_EXAMPLES=false \
+          -DLLVM_INCLUDE_BENCHMARKS=false \
+          -DLLVM_APPEND_VC_REV=false \
+          -DLLVM_ENABLE_WARNINGS=false \
+          -DLLVM_ENABLE_PEDANTIC=false \
+          -DLLVM_ENABLE_LIBPFM=false \
+          -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false \
+          -DLLVM_INSTALL_UTILS=false \
+          -DLLVM_ENABLE_ASSERTIONS=$ENABLE_ASSERTIONS
+    - run: echo "::group::Build LLVM Unit Tests"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      run: make $J UnitTests FileCheck count not lli llvm-strip llvm-install-name-tool dsymutil lli-child-target llvm-as llvm-bcanalyzer llvm-config llvm-cov llvm-cxxdump llvm-cvtres llvm-diff llvm-dis llvm-dwarfdump llvm-exegesis llvm-extract llvm-isel-fuzzer llvm-ifs llvm-jitlink llvm-opt-fuzzer llvm-lib llvm-link llvm-lto llvm-lto2 llvm-mc llvm-mca llvm-modextract llvm-nm llvm-objdump llvm-pdbutil llvm-profdata llvm-ranlib llvm-rc llvm-readelf llvm-rtdyld llvm-size llvm-split llvm-strings llvm-undname llvm-c-test llvm-cxxfilt llvm-xray yaml2obj obj2yaml yaml-bench verify-uselistorder bugpoint llc llvm-symbolizer opt sancov sanstats llvm-addr2line
+    - run: echo "::group::Run LLVM Unit Tests"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      env:
+        INCLUDE: ${{ inputs.include-only }}
+      run: |
+        ./bin/llvm-lit $GITHUB_WORKSPACE/$LLVM_PATH/test --filter="LLVM-Unit.*(($INCLUDE))" -v
+    - run: echo "::group::Build LLVM Regression Tests"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      run: make $J BugpointPasses llvm-cat llvm-opt-report llvm-mt llvm-dwp llvm-reduce llvm-lipo llvm-elfabi llvm-dlltool llvm-cxxmap llvm-cfi-verify
+    - run: echo "::group::Run LLVM Regression Tests"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      env:
+        EXCLUDE: ${{ inputs.exclude-reg }}
+        INCLUDE: ${{ inputs.include-only }}
+      run: |
+        # Split paranthesis to avoid the shell treating it as an executable
+        EXLUDE_FILTER="((?!"
+        EXLUDE_FILTER="${EXLUDE_FILTER}(LLVM-Unit$EXCLUDE"
+        EXLUDE_FILTER="${EXLUDE_FILTER})).)*"
+        FILTER="^$EXLUDE_FILTER$INCLUDE$EXLUDE_FILTER\$"
+        echo "Filter: $FILTER"
+        ./bin/llvm-lit  $GITHUB_WORKSPACE/$LLVM_PATH/test --filter="$FILTER" -v
+    
+    

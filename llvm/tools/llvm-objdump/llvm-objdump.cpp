@@ -588,7 +588,8 @@ namespace {
 /// Get the column at which we want to start printing the instruction
 /// disassembly, taking into account anything which appears to the left of it.
 unsigned getInstStartColumn(const MCSubtargetInfo &STI) {
-  return NoShowRawInsn ? 16 : STI.getTargetTriple().isX86() ? 40 : 24;
+  auto Triple = STI.getTargetTriple();
+  return NoShowRawInsn ? 16 : (Triple.isX86() || Triple.isPatmos()) ? 40 : 24;
 }
 
 /// Stores a single expression representing the location of a source-level
