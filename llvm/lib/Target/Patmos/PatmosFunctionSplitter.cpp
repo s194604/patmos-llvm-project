@@ -2333,7 +2333,7 @@ namespace llvm {
       return G.MF->getFunction().getName().str();
     }
 
-    static bool isNodeHidden(const ablock *) {
+    static bool isNodeHidden(const ablock *, const agraph) {
       return false;
     }
 

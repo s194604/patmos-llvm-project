@@ -1,5 +1,5 @@
 ; RUN: llc < %s -mpatmos-max-subfunction-size=64 | FileCheck %s
-; RUN: llc < %s -mpatmos-max-subfunction-size=64 -filetype=obj -o %t --basicblock-sections=labels;\
+; RUN: llc < %s -mpatmos-max-subfunction-size=64 -filetype=obj -o %t --basic-block-sections=labels;\
 ; RUN: llvm-objdump %t -d -t | FileCheck %s --check-prefix OBJ
 ; END.
 ;//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,12 +62,12 @@ entry:
 ; The following checks the type of the labels in the symbol table
 
 ; We first find the addresses of the labels in our inline assembly.
-; OBJ: [[ADDRESS1:[[:xdigit:]]{8}]] l .text {{([[:xdigit:]]{8})}} .inline_1
-; OBJ: [[ADDRESS2:[[:xdigit:]]{8}]] l .text {{([[:xdigit:]]{8})}} .inline_2
-; OBJ: [[ADDRESS3:[[:xdigit:]]{8}]] l .text {{([[:xdigit:]]{8})}} .inline_3
+; OBJ-DAG: [[ADDRESS1:[[:xdigit:]]{8}]] l .text {{([[:xdigit:]]{8})}} .inline_1
+; OBJ-DAG: [[ADDRESS2:[[:xdigit:]]{8}]] l .text {{([[:xdigit:]]{8})}} .inline_2
+; OBJ-DAG: [[ADDRESS3:[[:xdigit:]]{8}]] l .text {{([[:xdigit:]]{8})}} .inline_3
 
 ; We then check that these addresses are assigned with a label that is 'l' and 'F'
-; OBJ: [[ADDRESS1]] l F .text
-; OBJ: [[ADDRESS2]] l F .text
-; OBJ: [[ADDRESS3]] l F .text
+; OBJ-DAG: [[ADDRESS1]] l F .text
+; OBJ-DAG: [[ADDRESS2]] l F .text
+; OBJ-DAG: [[ADDRESS3]] l F .text
 ; OBJ: g F .text {{([[:xdigit:]]{8})}} main

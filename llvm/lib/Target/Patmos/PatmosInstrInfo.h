@@ -404,11 +404,9 @@ public:
   bool SubsumesPredicate(ArrayRef<MachineOperand> Pred1,
                          ArrayRef<MachineOperand> Pred2) const override;
 
-  /// If the specified instruction defines any predicate
-  /// or condition code register(s) used for predication, returns true as well
-  /// as the definition predicate(s) by reference.
-  bool DefinesPredicate(MachineInstr &MI,
-                        std::vector<MachineOperand> &Pred) const override;
+  bool ClobbersPredicate(MachineInstr &MI,
+                         std::vector<MachineOperand> &Pred,
+                         bool SkipDead) const override;
 
   /// Return true if it's profitable to predicate
   /// instructions with accumulated instruction latency of "NumCycles"

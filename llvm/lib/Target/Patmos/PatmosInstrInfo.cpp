@@ -1252,10 +1252,9 @@ SubsumesPredicate(ArrayRef<MachineOperand> Pred1,
   return false;
 }
 
-
-bool PatmosInstrInfo::DefinesPredicate(MachineInstr &MI,
-                                       std::vector<MachineOperand> &Pred)
-                                       const {
+bool PatmosInstrInfo::ClobbersPredicate(MachineInstr &MI,
+                         std::vector<MachineOperand> &Pred,
+                         bool SkipDead) const {
   bool flag = false;
 
   for (unsigned i = 0; i < MI.getNumOperands(); i++) {

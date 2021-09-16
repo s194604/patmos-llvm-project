@@ -3645,7 +3645,7 @@ namespace llvm {
       return "scagraph";
     }
 
-    static bool isNodeHidden(const SCANode *N)
+    static bool isNodeHidden(const SCANode *N, const SpillCostAnalysisGraph G)
     {
       return !N->isVisible();
     }

@@ -1025,7 +1025,7 @@ struct DOTGraphTraits<ScheduleDAGPostRA*> : public DefaultDOTGraphTraits {
     return true;
   }
 
-  static bool isNodeHidden(const SUnit *Node) {
+  static bool isNodeHidden(const SUnit *Node, const ScheduleDAGPostRA* G) {
     return (Node->NumPreds > 10 || Node->NumSuccs > 10);
   }
 

@@ -95,7 +95,7 @@ static cl::opt<PatmosSubtarget::CFLType> PatmosCFLType("mpatmos-cfl",
 PatmosSubtarget::PatmosSubtarget(const Triple &TT,
                                  StringRef CPU,
                                  StringRef FS, const PatmosTargetMachine &TM, CodeGenOpt::Level L) :
-  PatmosGenSubtargetInfo(TT, CPU, FS), TSInfo(),InstrInfo(new PatmosInstrInfo(TM)),
+  PatmosGenSubtargetInfo(TT, CPU, CPU, FS), TSInfo(),InstrInfo(new PatmosInstrInfo(TM)),
   FrameLowering(new PatmosFrameLowering(*this)),
   TLInfo(new PatmosTargetLowering(TM, *this)), OptLevel(L)
 {
@@ -103,7 +103,7 @@ PatmosSubtarget::PatmosSubtarget(const Triple &TT,
   if (CPUName.empty()) CPUName = "generic";
 
   // Parse features string.
-  ParseSubtargetFeatures(CPUName, FS);
+  ParseSubtargetFeatures(CPUName, CPUName, FS);
 
   InstrItins = getInstrItineraryForCPU(CPUName);
 }

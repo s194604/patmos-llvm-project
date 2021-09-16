@@ -65,6 +65,12 @@ public:
 
   const InstrItineraryData *getInstrItineraryData() const {  return Subtarget.getInstrItineraryData(); }
 
+  /// Returns true if a cast between SrcAS and DestAS is a noop.
+  bool isNoopAddrSpaceCast(unsigned SrcAS, unsigned DestAS) const override{
+    // Addrspacecasts are always noops.
+    return true;
+  }
+
   /// createPassConfig - Create a pass configuration object to be used by
   /// addPassToEmitX methods for generating a pipeline of CodeGen passes.
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;

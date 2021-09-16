@@ -66,7 +66,7 @@ createPatmosMCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
     // as well, otherwise we have no SchedModel.
     CPU = "generic";
   }
-  return createPatmosMCSubtargetInfoImpl(TT, CPU, FS);
+  return createPatmosMCSubtargetInfoImpl(TT, CPU, CPU, FS);
 }
 
 static MCInstPrinter *createPatmosMCInstPrinter(const Triple &T,

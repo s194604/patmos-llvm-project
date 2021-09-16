@@ -536,7 +536,8 @@ namespace llvm {
       return "xxx";
     }
 
-    static bool isNodeHidden(const MCGNode *N) {
+    static bool isNodeHidden(const MCGNode *N,
+                             const MCallGraph G) {
       return false;
     }
 
@@ -665,7 +666,8 @@ namespace llvm {
       return "CallGraph";
     }
 
-    static bool isNodeHidden(const MCGNode* N) {
+    static bool isNodeHidden(const MCGNode* N,
+                             const MCallSubGraph G) {
       return false;
     }
 
