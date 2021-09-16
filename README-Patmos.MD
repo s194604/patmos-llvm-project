@@ -10,14 +10,15 @@ This is a fork of the LLVM Project that adds a target for the Patmos Architectur
 Platform:
 
 - Ubuntu 18/20
-- MacOs
+- MacOs 10.15
 - Windows Subsystem for Linux running Ubuntu 18/20
 
 Tools:
 
 - `gcc` v9.1 or `clang` v11.0.0
 - `git` v2.17.1
-- `cmake` v4.0.0
+- `cmake` v3.21.0
+- `make` v4.1
 - Patmos Simulator Tools v1.0.2
 
 ### Branches
@@ -47,10 +48,9 @@ In this folder, you must setup the build with `cmake` (referencing the LLVM subf
 ```
 mkdir -p build
 cd build
-cmake ../llvm -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DLLVM_TARGETS_TO_BUILD=Patmos -DLLVM_DEFAULT_TARGET_TRIPLE=patmos-unknown-unknown-elf -DLLVM_ENABLE_PROJECTS="clang" -DCLANG_ENABLE_ARCMT=false -DCLANG_ENABLE_STATIC_ANALYZER=false -DCLANG_BUILD_EXAMPLES=false -DLLVM_ENABLE_BINDINGS=false -DLLVM_INSTALL_BINUTILS_SYMLINKS=false -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false -DLLVM_INCLUDE_EXAMPLES=false -DLLVM_INCLUDE_BENCHMARKS=false -DLLVM_APPEND_VC_REV=false -DLLVM_ENABLE_WARNINGS=false -DLLVM_ENABLE_PEDANTIC=false -DLLVM_ENABLE_LIBPFM=false -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false -DLLVM_INSTALL_UTILS=false
+cmake ../llvm -DCMAKE_BUILD_TYPE=Debug -DLLVM_TARGETS_TO_BUILD=Patmos -DLLVM_DEFAULT_TARGET_TRIPLE=patmos-unknown-unknown-elf -DLLVM_ENABLE_PROJECTS="clang" -DCLANG_ENABLE_ARCMT=false -DCLANG_ENABLE_STATIC_ANALYZER=false -DCLANG_BUILD_EXAMPLES=false -DLLVM_ENABLE_BINDINGS=false -DLLVM_INSTALL_BINUTILS_SYMLINKS=false -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false -DLLVM_INCLUDE_EXAMPLES=false -DLLVM_INCLUDE_BENCHMARKS=false -DLLVM_APPEND_VC_REV=false -DLLVM_ENABLE_WARNINGS=false -DLLVM_ENABLE_PEDANTIC=false -DLLVM_ENABLE_LIBPFM=false -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false -DLLVM_INSTALL_UTILS=false
 make -j
 ```
-Where the $INSTALL_DIR should be the local installation folder. typically '../local'.
 
 ### Test
 
@@ -135,17 +135,3 @@ git push origin +master
 You have now effectively merged the old Patmos head with the new LLVM release tag.
 The git history will showing as being a merge of the two commits.
 After this, the Patmos code will probably need tweaking to conform to any changes LLVM has made since the last release.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
