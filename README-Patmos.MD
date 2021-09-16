@@ -64,16 +64,88 @@ make check-all
 ### <a name="anch-updating-llvm"></a>Updating LLVM
 
 Even though this repository is a fork of [the official LLVM repository](https://github.com/llvm/llvm-project), 
-we only pull the upstream changes at an official release.
+we only pull the upstream changes at official release tags.
 The `upstream` branch is specifically intended for this and nothing else.
 Its `HEAD` should always be a commit for an official release.
-E.g. it could be tracking the commit for the 11.0.0 release (176249b).
+E.g. it could be tracking the commit for the 11.1.0 release.
 
-To update the version of LLVM used, the following steps must be taken:
+Updating to a new release of upstream LLVM is not a trivial task.
+The main difficulty comes from the fact that LLVM uses release branches, whic means their history splits after a major release. 
+This means trying to simply pull in the latest release tag will likely cause many merge conflicts in LLVM code that we (the Patmos project) haven't touched.
+Trying to fix the merge conflict can be tedious and error prone.
+Instead, the following guide will mimick mergin by simply applying Patmos' code directly to the new release.
+This will cause much fewer and simply conflicts and is much less likely to be done incorrectly:
 
-* Switch to the `upstream` branch: `git checkout upstream`.
-* Pull the latest release commit. This is most easily done by pull the corresponding tag (e.g. `llvmorg-11.0.0` for the 11.0.0 release):
-`git pull https://github.com/llvm/llvm-project.git llvmorg-11.0.0`
-* Switch to the `master` branch: `git checkout master`.
-* Merge the `upstream` branch into `master`: `git merge upstream`
-* Fix any merge conflicts that arise.
+_`llvm-upstream` refers to the LLVM github repo: github.com/llvm/llvm-project._
+
+_`t-crest` refers to the Patmos LLVM github repo: github.com/t-crest/patmos-llvm-project._
+
+_As an example, `llvmorg-11.1.0` is the current LLVM version tag used by Patmos, and `llvmorg-12.0.1` is the one we are trying to update to. Change them as appropriate_
+
+* Get the most recent LLVM release's tag: 
+```sh
+git checkout master
+git pull llvm-upstream --tags
+```
+
+* Update the `upstream` branch to point to it: 
+```sh
+git branch -f upstream llvmorg-12.0.1
+```
+
+* Push the new tag and "upstream" to the t-crest repo:
+```sh
+git checkout upstream
+git push t-crest +upstream
+git push llvmorg-12.0.1
+```
+
+* Create a diff of the difference between Patmos HEAD and `llvmorg-11.1.0`, which will then contain all Patmos-specific code/changes:
+```sh
+git diff llvmorg-11.1.0 master > patmos-diff.patch
+```
+
+* Move to a temporary branch where you apply the changes to the latest LLVM release:
+```sh
+git checkout llvmorg-12.0.1 -b tempbranch
+git apply --reject --verbose --ignore-whitespace patmos-diff.patch
+```
+
+* Git has now applied all changes it can. Where unable, it left a `*.rej` file containing the unapplied patmos changes (where `*` is th name of the file containing the unapplied code).
+Go through the project and apply rejected code manually and deleting the `*.rej` files as you go.
+To check whether you applied the diff correctly, you can print out the changes (`git diff > post-apply-patmos-diff.patch`) and compare it with the original diff (`diff post-apply-patmos-diff.patch patmos-diff.patch`). 
+The differences should be minor and only in non-patmos code.
+
+* Commit: `git commit -m "Merged Patmos HEAD with llvmorg-12.0.1"`
+
+* Rewrite git history, to show that the last Patmos commit is also a parent of the new one (to make it look like we merged it with `llvmorg-12.0.1`):
+```sh
+git replace --graft tempbranch llvmorg-12.0.1 master
+git filter-branch llvmorg-12.0.1..tempbranch
+```
+
+* Change `master` to point to the new commit, delete the temporary branch, and push to T-CREST reposity:
+```sh
+git branch -f master tempbranch
+git checkout master
+git branch -D tempbranch
+git push origin +master
+```
+
+You have now effectively merged the old Patmos head with the new LLVM release tag.
+The git history will showing as being a merge of the two commits.
+After this, the Patmos code will probably need tweaking to conform to any changes LLVM has made since the last release.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
