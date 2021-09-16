@@ -1,3 +1,5 @@
+add_llvm_component_group(Patmos)
+
 set(LLVM_TARGET_DEFINITIONS Patmos.td)
 
 tablegen(LLVM PatmosGenRegisterInfo.inc -gen-register-info)
@@ -33,6 +35,24 @@ add_llvm_target(PatmosCodeGen
   PatmosSchedStrategy.cpp
   PatmosEnsureAlignment.cpp
   MachineModulePass.cpp
+  
+  LINK_COMPONENTS
+  PatmosDesc 
+  PatmosInfo 
+  PatmosSinglePath 
+  Analysis 
+  AsmPrinter 
+  CodeGen 
+  Core 
+  MC 
+  SelectionDAG 
+  Support 
+  Target 
+  GlobalISel
+
+  ADD_TO_COMPONENT
+  Patmos
+  
   )
 
 add_subdirectory(AsmParser)

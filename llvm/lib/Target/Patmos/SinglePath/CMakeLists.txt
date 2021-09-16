@@ -9,4 +9,13 @@ add_llvm_component_library(LLVMPatmosSinglePath
   SPScope.cpp
   SPScheduler.cpp
   PredicateDefinition.cpp
+  
+  LINK_COMPONENTS
+  PatmosInfo 
+  MC 
+  Support
+ 
+  ADD_TO_COMPONENT
+  Patmos
+  
   )
