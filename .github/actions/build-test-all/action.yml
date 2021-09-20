@@ -1,0 +1,97 @@
+name: 'Build and Test'
+description: 'Builds everything and run all tests.'
+inputs:
+  targets:  
+    description: 'Which target architectures to build for.'
+    required: true
+    default: Patmos
+  default-target:
+    description: 'Which target triple should be the default.'
+    required: true
+    default: patmos-unknown-unknown-elf
+  enable-assertions:
+    description: 'Whether to enable assertions.'
+    required: true
+    default: false
+  exclude-reg:
+    description: 'Exclude regression test. Should be a pipe-separated list.'
+    required: true
+    default: ''
+  include-only:
+    description: 'Include tests, testing only the given. Should be a pipe-separated list.'
+    required: true
+    default: 'Patmos'
+        
+runs:
+  using: "composite"
+  steps: 
+    - run: echo "::group::Check Arguments"
+      shell: bash
+    - run: ${{(inputs.exclude-reg != '') || startsWith('|', inputs.exclude-reg)}}
+      shell: bash
+    - shell: bash
+      run: |
+        echo "Creating Build Folder '$GITHUB_WORKSPACE/$BUILD_PATH'"
+        mkdir -p $BUILD_PATH
+    - run: echo "::group::Configure LLVM Build"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+        DEFAULT_TARGET: ${{ inputs.default-target }}
+        ENABLE_ASSERTIONS: ${{ inputs.enable-assertions }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$LLVM_PATH \
+          -DCMAKE_CXX_STANDARD=14 \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_PATH \
+          -DLLVM_TARGETS_TO_BUILD=$TARGETS \
+          -DLLVM_DEFAULT_TARGET_TRIPLE=$DEFAULT_TARGET \
+          -DLLVM_ENABLE_PROJECTS=clang \
+          -DCLANG_ENABLE_ARCMT=false \
+          -DCLANG_ENABLE_STATIC_ANALYZER=false \
+          -DCLANG_BUILD_EXAMPLES=false \
+          -DLLVM_ENABLE_BINDINGS=false \
+          -DLLVM_INSTALL_BINUTILS_SYMLINKS=false \
+          -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false \
+          -DLLVM_INCLUDE_EXAMPLES=false \
+          -DLLVM_INCLUDE_BENCHMARKS=false \
+          -DLLVM_APPEND_VC_REV=false \
+          -DLLVM_ENABLE_WARNINGS=false \
+          -DLLVM_ENABLE_PEDANTIC=false \
+          -DLLVM_ENABLE_LIBPFM=false \
+          -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false \
+          -DLLVM_INSTALL_UTILS=false \
+          -DLLVM_ENABLE_ASSERTIONS=$ENABLE_ASSERTIONS
+    - name: LLVM Unit Tests
+      uses: ./.github/actions/build-test
+      with:
+        targets: UnitTests FileCheck count not lli llvm-strip llvm-install-name-tool dsymutil lli-child-target llvm-as llvm-bcanalyzer llvm-config llvm-cov llvm-cxxdump llvm-cvtres llvm-diff llvm-dis llvm-dwarfdump llvm-exegesis llvm-extract llvm-isel-fuzzer llvm-ifs llvm-jitlink llvm-opt-fuzzer llvm-lib llvm-link llvm-lto llvm-lto2 llvm-mc llvm-mca llvm-modextract llvm-nm llvm-objdump llvm-pdbutil llvm-profdata llvm-ranlib llvm-rc llvm-readelf llvm-rtdyld llvm-size llvm-split llvm-strings llvm-undname llvm-c-test llvm-cxxfilt llvm-xray yaml2obj obj2yaml yaml-bench verify-uselistorder bugpoint llc llvm-symbolizer opt sancov sanstats llvm-addr2line
+        path: ${{env.LLVM_PATH}}/test
+        include: LLVM-Unit.*(${{inputs.include-only}})
+        exclude: ${{inputs.exclude-reg}}
+    - name: LLVM Regression Tests
+      uses: ./.github/actions/build-test
+      with:
+        targets: BugpointPasses llvm-cat llvm-opt-report llvm-mt llvm-dwp llvm-reduce llvm-lipo llvm-elfabi llvm-dlltool llvm-cxxmap llvm-cfi-verify split-file llvm-bitcode-strip llvm-dlltool llvm-opt-report llvm-lipo llvm-ml llvm-libtool-darwin llvm-gsymutil llvm-elfabi llvm-dwp llvm-mt llvm-cfi-verify llvm-cxxmap llvm-cat llvm-reduce
+        path: ${{env.LLVM_PATH}}/test 
+        include: ${{inputs.include-only}}
+        exclude: LLVM-Unit
+    - name: Clang Unit Tests
+      uses: ./.github/actions/build-test
+      with:
+        targets: ClangUnitTests clang
+        path: ${{env.CLANG_PATH}}/test 
+        include: Clang-Unit.*(${{inputs.include-only}})
+        exclude: ${{inputs.exclude-reg}}
+        lit-args: --allow-empty-runs
+    - name: Clang Regression Tests
+      uses: ./.github/actions/build-test
+      with:
+        targets: apinotes-test c-index-test clang-diff clang-format clang-scan-deps clang-import-test clang-rename diagtool hmaptool clang-refactor
+        path: ${{env.CLANG_PATH}}/test 
+        include: ${{inputs.include-only}}
+        exclude: Clang-Unit
+    
+    

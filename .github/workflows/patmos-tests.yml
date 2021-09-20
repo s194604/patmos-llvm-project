@@ -14,6 +14,7 @@ env:
   BUILD_PATH: build
   INSTALL_PATH: build/local
   LLVM_PATH: llvm
+  CLANG_PATH: clang
   
 jobs:
   test-non-patmos:
@@ -27,14 +28,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build and Run LLVM Unit and Regression Tests
-        uses: ./.github/actions/llvm-test-unit-reg
+        uses: ./.github/actions/build-test-all
         with:
           targets: X86;AArch64;RISCV
           enable-assertions: true
-          # The following test are known to fail on pure upstream
-          exclude-reg: "|tools/llvm-ml|tools/llvm-gsymutil"
-          # Inlcude all unit tests
-          include-only: ""
+          # Exclude known failing tests
+          exclude-reg: "(Clang :: Lexer/case-insensitive-include.c)|(Clang :: Lexer/case-insensitive-system-include.c)|(Clang :: Modules/inferred-framework-case.m)|(Clang :: Preprocessor/nonportable-include-with-hmap.c)"
+          # Don't limit tests to Patmos
+          include-only: "."
           default-target: x86_64-unknown-linux-gnu
       - name: Finalize LLVM Build
         working-directory: ${{env.BUILD_PATH}}
@@ -83,7 +84,7 @@ jobs:
           # Set path
           echo "$GITHUB_WORKSPACE/$INSTALL_PATH/bin" >> $GITHUB_PATH
       - name: Build and Run LLVM Unit and Regression Tests
-        uses: ./.github/actions/llvm-test-unit-reg
+        uses: ./.github/actions/build-test-all
         with:
           enable-assertions: true
       - name: Finalize LLVM Build
