@@ -15,6 +15,7 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Parse/LoopHint.h"
+#include "clang/Parse/Loopbound.h"
 #include "clang/Parse/ParseDiagnostic.h"
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/RAIIObjectsForParser.h"
@@ -243,6 +244,12 @@ struct PragmaUnrollHintHandler : public PragmaHandler {
                     Token &FirstToken) override;
 };
 
+struct PragmaLoopboundHandler : public PragmaHandler {
+  PragmaLoopboundHandler() : PragmaHandler("loopbound") {}
+  void HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer,
+                    Token &FirstToken) override;
+};
+
 struct PragmaMSRuntimeChecksHandler : public EmptyPragmaHandler {
   PragmaMSRuntimeChecksHandler() : EmptyPragmaHandler("runtime_checks") {}
 };
@@ -397,6 +404,9 @@ void Parser::initializePragmaHandlers() {
   LoopHintHandler = std::make_unique<PragmaLoopHintHandler>();
   PP.AddPragmaHandler("clang", LoopHintHandler.get());
 
+  LoopboundHandler = std::make_unique<PragmaLoopboundHandler>();
+  PP.AddPragmaHandler(LoopboundHandler.get());
+
   UnrollHintHandler = std::make_unique<PragmaUnrollHintHandler>("unroll");
   PP.AddPragmaHandler(UnrollHintHandler.get());
 
@@ -515,6 +525,9 @@ void Parser::resetPragmaHandlers() {
 
   PP.RemovePragmaHandler("clang", LoopHintHandler.get());
   LoopHintHandler.reset();
+
+  PP.RemovePragmaHandler(LoopboundHandler.get());
+  LoopboundHandler.reset();
 
   PP.RemovePragmaHandler(UnrollHintHandler.get());
   UnrollHintHandler.reset();
@@ -1284,6 +1297,35 @@ bool Parser::HandlePragmaLoopHint(LoopHint &Hint) {
   Hint.Range = SourceRange(Info->PragmaName.getLocation(),
                            Info->Toks.back().getLocation());
   return true;
+}
+
+struct PragmaLoopboundInfo {
+  Token PragmaName;
+  Token Min;
+  Token Max;
+};
+
+void Parser::HandlePragmaLoopbound(Loopbound &LB) {
+  assert(Tok.is(tok::annot_pragma_loopbound));
+
+  PragmaLoopboundInfo *Info =
+      static_cast<PragmaLoopboundInfo *>(Tok.getAnnotationValue());
+  ConsumeAnnotationToken();
+
+  LB.PragmaNameLoc = IdentifierLoc::create(
+      Actions.Context,
+      Info->PragmaName.getLocation(),
+      Info->PragmaName.getIdentifierInfo()
+      );
+
+  assert(Info->Min.is(tok::numeric_constant));
+  LB.MinExpr = Actions.ActOnNumericConstant(Info->Min).get();
+
+  assert(Info->Max.is(tok::numeric_constant));
+  LB.MaxExpr = Actions.ActOnNumericConstant(Info->Max).get();
+
+  LB.Range =
+        SourceRange(Info->PragmaName.getLocation(), Info->Max.getLocation());
 }
 
 namespace {
@@ -3376,6 +3418,64 @@ void PragmaUnrollHintHandler::HandlePragma(Preprocessor &PP,
   TokenArray[0].setAnnotationValue(static_cast<void *>(Info));
   PP.EnterTokenStream(std::move(TokenArray), 1,
                       /*DisableMacroExpansion=*/false, /*IsReinject=*/false);
+}
+
+// #pragma loopbound min NUM max NUM
+void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
+                                          PragmaIntroducer Introducer,
+                                          Token &Tok) {
+  Token LoopboundTok = Tok;
+
+  PragmaLoopboundInfo *Info =
+    new (PP.getPreprocessorAllocator()) PragmaLoopboundInfo;
+  Info->PragmaName = LoopboundTok;
+
+  PP.LexUnexpandedToken(Tok);
+  if (Tok.isNot(tok::identifier) ||
+      !Tok.getIdentifierInfo()->isStr("min")) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+
+  PP.Lex(Tok); // allow macro expansion for minimum
+  if (!Tok.is(tok::numeric_constant)) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+  // store loopbound min
+  Info->Min = Tok;
+
+  PP.LexUnexpandedToken(Tok);
+  if (Tok.isNot(tok::identifier) ||
+      !Tok.getIdentifierInfo()->isStr("max")) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+
+  PP.Lex(Tok); // allow macro expansion for maximum
+  if (!Tok.is(tok::numeric_constant)) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+  // store loopbound max
+  Info->Max = Tok;
+
+  // eat the max
+  PP.Lex(Tok);
+  if (Tok.isNot(tok::eod)) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+
+  auto TokenArray = std::make_unique<Token[]>(1);
+  TokenArray[0].startToken();
+  TokenArray[0].setKind(tok::annot_pragma_loopbound);
+  TokenArray[0].setLocation(Introducer.Loc);
+  TokenArray[0].setAnnotationEndLoc(LoopboundTok.getLocation());
+  TokenArray[0].setAnnotationValue(static_cast<void *>(Info));
+  PP.EnterTokenStream(std::move(TokenArray), 1, /*DisableMacroExpansion=*/false,
+                      /*IsReinject=*/false);
+
 }
 
 /// Handle the Microsoft \#pragma intrinsic extension.

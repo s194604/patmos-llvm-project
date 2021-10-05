@@ -22,6 +22,7 @@
 #include "InputInfo.h"
 #include "MSP430.h"
 #include "PS4CPU.h"
+#include "Patmos.h"
 #include "clang/Basic/CharInfo.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "clang/Basic/LangOptions.h"
@@ -337,6 +338,9 @@ static void getTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   case llvm::Triple::riscv64:
     riscv::getRISCVTargetFeatures(D, Triple, Args, Features);
     break;
+  case llvm::Triple::patmos:
+    patmos::getPatmosTargetFeatures(D, Triple, Args, Features);
+    break;
   case llvm::Triple::systemz:
     systemz::getSystemZTargetFeatures(D, Args, Features);
     break;
@@ -530,6 +534,7 @@ static bool useFramePointerForTargetByDefault(const ArgList &Args,
   case llvm::Triple::ppc64le:
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
+  case llvm::Triple::patmos:
   case llvm::Triple::amdgcn:
   case llvm::Triple::r600:
     return !areOptimizationsEnabled(Args);
@@ -1406,6 +1411,7 @@ static bool isSignedCharDefault(const llvm::Triple &Triple) {
   case llvm::Triple::ppc64le:
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
+  case llvm::Triple::patmos:
   case llvm::Triple::systemz:
   case llvm::Triple::xcore:
     return false;
@@ -1628,6 +1634,10 @@ void Clang::RenderTargetOptions(const llvm::Triple &EffectiveTriple,
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
     AddRISCVTargetArgs(Args, CmdArgs);
+    break;
+  case llvm::Triple::patmos:
+//    assert(false && "Clang patmos target unimplemented");
+    AddPatmosTargetArgs(Args, CmdArgs);
     break;
 
   case llvm::Triple::sparc:
@@ -2026,6 +2036,11 @@ void Clang::AddRISCVTargetArgs(const ArgList &Args,
     CmdArgs.push_back("-tune-cpu");
     CmdArgs.push_back(Args.MakeArgString(TuneCPU));
   }
+}
+
+void Clang::AddPatmosTargetArgs(const ArgList &Args,
+                                ArgStringList &CmdArgs) const {
+
 }
 
 void Clang::AddSparcTargetArgs(const ArgList &Args,
@@ -7270,6 +7285,10 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
     AddRISCVTargetArgs(Args, CmdArgs);
+    break;
+  case llvm::Triple::patmos:
+    assert(false && "patmos not implemented for clang-as");
+//    AddPatmosTargetArgs(Args, CmdArgs);
     break;
   }
 

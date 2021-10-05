@@ -758,6 +758,46 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ContBlock, true);
 }
 
+void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
+                                       llvm::BranchInst *CondBr,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  // Return if there are no hints.
+  if (Attrs.empty())
+    return;
+
+  // Add loopbounds to the metadata on the conditional branch.
+  SmallVector<llvm::Metadata *, 2> Metadata(1);
+  for (unsigned i = 0; i < Attrs.size(); ++i) {
+    const Attr *A = Attrs[i];
+    const LoopBoundAttr *LB = dyn_cast<LoopBoundAttr>(A);
+
+    // Skip non loopbound attributes
+    if (!LB) continue;
+
+    const char *MetadataName = "llvm.loop.bound";
+    llvm::MDString *Name = llvm::MDString::get(Context, MetadataName);
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    SmallVector<llvm::Metadata *, 3> OpValues;
+    OpValues.push_back(Name);
+    OpValues.push_back(llvm::ValueAsMetadata::get(MinVal));
+    OpValues.push_back(llvm::ValueAsMetadata::get(MaxVal));
+
+    // Set or overwrite metadata indicated by Name.
+    Metadata.push_back(llvm::MDNode::get(Context, OpValues));
+  }
+
+  if (!Metadata.empty()) {
+    // Add llvm.loop MDNode to CondBr.
+    llvm::MDNode *LoopID = llvm::MDNode::get(Context, Metadata);
+    LoopID->replaceOperandWith(0, LoopID); // First op points to itself.
+
+    CondBr->setMetadata("llvm.loop", LoopID);
+  }
+
+}
+
 void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
                                     ArrayRef<const Attr *> WhileAttrs) {
   // Emit the header for the loop, which will also become
@@ -814,12 +854,16 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
       ExitBlock = createBasicBlock("while.exit");
     llvm::MDNode *Weights = createProfileOrBranchWeightsForLoop(
         S.getCond(), getProfileCount(S.getBody()), S.getBody());
-    Builder.CreateCondBr(BoolCondVal, LoopBody, ExitBlock, Weights);
+    llvm::BranchInst *CondBr =
+        Builder.CreateCondBr(BoolCondVal, LoopBody, ExitBlock, Weights);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);
       EmitBranchThroughCleanup(LoopExit);
     }
+
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, WhileAttrs);
   } else if (const Attr *A = Stmt::getLikelihoodAttr(S.getBody())) {
     CGM.getDiags().Report(A->getLocation(),
                           diag::warn_attribute_has_no_effect_on_infinite_loop)
@@ -910,9 +954,12 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
   // As long as the condition is true, iterate the loop.
   if (EmitBoolCondBranch) {
     uint64_t BackedgeCount = getProfileCount(S.getBody()) - ParentCount;
-    Builder.CreateCondBr(
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(
         BoolCondVal, LoopBody, LoopExit.getBlock(),
         createProfileWeightsForLoop(S.getCond(), BackedgeCount));
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, DoAttrs);
   }
 
   LoopStack.pop();
@@ -996,8 +1043,11 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
     if (llvm::ConstantInt *C = dyn_cast<llvm::ConstantInt>(BoolCondVal))
       if (C->isOne())
         FnIsMustProgress = false;
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock, Weights);
 
-    Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock, Weights);
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(ForBody->getContext(), CondBr, ForAttrs);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);

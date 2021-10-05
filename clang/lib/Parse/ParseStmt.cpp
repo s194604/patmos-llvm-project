@@ -15,6 +15,7 @@
 #include "clang/Basic/Attributes.h"
 #include "clang/Basic/PrettyStackTrace.h"
 #include "clang/Parse/LoopHint.h"
+#include "clang/Parse/Loopbound.h"
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/RAIIObjectsForParser.h"
 #include "clang/Sema/DeclSpec.h"
@@ -412,6 +413,10 @@ Retry:
   case tok::annot_pragma_loop_hint:
     ProhibitAttributes(Attrs);
     return ParsePragmaLoopHint(Stmts, StmtCtx, TrailingElseLoc, Attrs);
+
+  case tok::annot_pragma_loopbound:
+    ProhibitAttributes(Attrs);
+    return ParsePragmaLoopbound(Stmts, StmtCtx, TrailingElseLoc, Attrs);
 
   case tok::annot_pragma_dump:
     HandlePragmaDump();
@@ -2238,6 +2243,33 @@ StmtResult Parser::ParsePragmaLoopHint(StmtVector &Stmts,
   if (Attrs.Range.getBegin().isInvalid())
     Attrs.Range.setBegin(StartLoc);
 
+  return S;
+}
+
+StmtResult Parser::ParsePragmaLoopbound(StmtVector &Stmts,
+                                        ParsedStmtContext StmtCtx,
+                                        SourceLocation *TrailingElseLoc,
+                                        ParsedAttributesWithRange &Attrs) {
+  // Create temporary attribute list.
+  ParsedAttributesWithRange TempAttrs(AttrFactory);
+
+  // Get loopbound and consume annotated token.
+  while (Tok.is(tok::annot_pragma_loopbound)) {
+    Loopbound LB;
+    HandlePragmaLoopbound(LB);
+    ArgsUnion ArgLB[] = {ArgsUnion(LB.MinExpr), ArgsUnion(LB.MaxExpr)};
+    TempAttrs.addNew(LB.PragmaNameLoc->Ident, LB.Range, nullptr,
+                     LB.PragmaNameLoc->Loc, ArgLB, 2,
+                     ParsedAttr::AS_Pragma);
+  }
+
+  // Get the next statement.
+  MaybeParseCXX11Attributes(Attrs);
+
+  StmtResult S = ParseStatementOrDeclarationAfterAttributes(
+      Stmts, StmtCtx, TrailingElseLoc, Attrs);
+
+  Attrs.takeAllFrom(TempAttrs);
   return S;
 }
 

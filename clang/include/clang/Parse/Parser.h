@@ -38,6 +38,7 @@ namespace clang {
   class DeclGroupRef;
   class DiagnosticBuilder;
   struct LoopHint;
+  struct Loopbound;
   class Parser;
   class ParsingDeclRAIIObject;
   class ParsingDeclSpec;
@@ -196,6 +197,7 @@ class Parser : public CodeCompletionHandler {
   std::unique_ptr<PragmaHandler> CUDAForceHostDeviceHandler;
   std::unique_ptr<PragmaHandler> OptimizeHandler;
   std::unique_ptr<PragmaHandler> LoopHintHandler;
+  std::unique_ptr<PragmaHandler> LoopboundHandler;
   std::unique_ptr<PragmaHandler> UnrollHintHandler;
   std::unique_ptr<PragmaHandler> NoUnrollHintHandler;
   std::unique_ptr<PragmaHandler> UnrollAndJamHintHandler;
@@ -764,6 +766,10 @@ private:
   /// Handle the annotation token produced for
   /// #pragma clang loop and #pragma unroll.
   bool HandlePragmaLoopHint(LoopHint &Hint);
+
+  /// \brief Handle the annotation token produced for
+  /// #pragma loopbound
+  void HandlePragmaLoopbound(Loopbound &LB);
 
   bool ParsePragmaAttributeSubjectMatchRuleSet(
       attr::ParsedSubjectMatchRuleSet &SubjectMatchRules,
@@ -2105,6 +2111,10 @@ private:
                                  ParsedStmtContext StmtCtx,
                                  SourceLocation *TrailingElseLoc,
                                  ParsedAttributesWithRange &Attrs);
+  StmtResult ParsePragmaLoopbound(StmtVector &Stmts,
+                                  ParsedStmtContext StmtCtx,
+                                  SourceLocation *TrailingElseLoc,
+                                  ParsedAttributesWithRange &Attrs);
 
   /// Describes the behavior that should be taken for an __if_exists
   /// block.

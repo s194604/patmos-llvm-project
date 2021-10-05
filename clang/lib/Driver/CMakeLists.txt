@@ -1,5 +1,6 @@
 set(LLVM_LINK_COMPONENTS
   BinaryFormat
+  Object
   Option
   ProfileData
   Support
@@ -66,6 +67,7 @@ add_clang_library(clangDriver
   ToolChains/OpenBSD.cpp
   ToolChains/PS4CPU.cpp
   ToolChains/RISCVToolchain.cpp
+  ToolChains/Patmos.cpp
   ToolChains/Solaris.cpp
   ToolChains/TCE.cpp
   ToolChains/VEToolchain.cpp
