@@ -758,21 +758,24 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ContBlock, true);
 }
 
+// Emits loop bounds on the given conditional branch (assuming its
+// the branch that controls the condition of the loop.
+//
+// Current implementation overwrites any "llvm.loop" attribute on the
+// instruction, meaning it doesn't play well with other loop hints,
+// e.g. "unroll".
 void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
                                        llvm::BranchInst *CondBr,
                                        const ArrayRef<const Attr *> &Attrs) {
-  // Return if there are no hints.
-  if (Attrs.empty())
-    return;
+  auto is_bound = [](auto attr){ return dyn_cast<LoopBoundAttr>(attr); };
 
-  // Add loopbounds to the metadata on the conditional branch.
-  SmallVector<llvm::Metadata *, 2> Metadata(1);
-  for (unsigned i = 0; i < Attrs.size(); ++i) {
-    const Attr *A = Attrs[i];
-    const LoopBoundAttr *LB = dyn_cast<LoopBoundAttr>(A);
+  assert(std::count_if(Attrs.begin(), Attrs.end(), is_bound) <= 1 &&
+      "We don't support multiple bounds on the same loop");
 
-    // Skip non loopbound attributes
-    if (!LB) continue;
+  // Look for any loopbound attribute
+  auto foundLB = std::find_if(Attrs.begin(), Attrs.end(),is_bound);
+  if( foundLB != Attrs.end() ) {
+    auto LB = dyn_cast<LoopBoundAttr>(*foundLB); // Guaranteed to work
 
     const char *MetadataName = "llvm.loop.bound";
     llvm::MDString *Name = llvm::MDString::get(Context, MetadataName);
@@ -784,18 +787,13 @@ void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
     OpValues.push_back(llvm::ValueAsMetadata::get(MinVal));
     OpValues.push_back(llvm::ValueAsMetadata::get(MaxVal));
 
-    // Set or overwrite metadata indicated by Name.
+    SmallVector<llvm::Metadata *, 2> Metadata(1);
     Metadata.push_back(llvm::MDNode::get(Context, OpValues));
-  }
-
-  if (!Metadata.empty()) {
-    // Add llvm.loop MDNode to CondBr.
     llvm::MDNode *LoopID = llvm::MDNode::get(Context, Metadata);
     LoopID->replaceOperandWith(0, LoopID); // First op points to itself.
 
     CondBr->setMetadata("llvm.loop", LoopID);
   }
-
 }
 
 void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
