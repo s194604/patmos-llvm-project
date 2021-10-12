@@ -964,15 +964,19 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
       LLCExec, LLCArgs, Inputs, Output));
 }
 
-static std::string get_patmos_gold(const ToolChain &TC)
+static std::string get_patmos_gold(const ToolChain &TC, DiagnosticsEngine &Diag)
 {
   char *gold_envvar = getenv("PATMOS_GOLD");
   if (gold_envvar && strcmp(gold_envvar,"")!=0 ) {
-    if (llvm::sys::fs::exists(gold_envvar))
+    if (llvm::sys::fs::exists(gold_envvar)) {
       return std::string(gold_envvar);
-    else
-      llvm::report_fatal_error("gold linker specified through PATMOS_GOLD "
-                               "environment variable not found.");
+    } else{
+      auto DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Error,
+                           "gold linker specified through PATMOS_GOLD "
+                           "environment variable not found: '%0'");
+      Diag.Report(DiagID) << gold_envvar;
+      return "";
+    }
   }
 
   std::string longname = TC.getTriple().str() + "-ld";
@@ -1054,8 +1058,7 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
 
   LDArgs.append(GoldInputs.begin(), GoldInputs.end());
 
-
-  const char *LDExec = Args.MakeArgString(get_patmos_gold(TC));
+  const char *LDExec = Args.MakeArgString(get_patmos_gold(TC, C.getDriver().getDiags()));
   C.addCommand(std::make_unique<Command>(
       JA, Creator, ResponseFileSupport::AtFileCurCP(),
       LDExec, LDArgs, Inputs, Output));
