@@ -338,9 +338,6 @@ static void getTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   case llvm::Triple::riscv64:
     riscv::getRISCVTargetFeatures(D, Triple, Args, Features);
     break;
-  case llvm::Triple::patmos:
-    patmos::getPatmosTargetFeatures(D, Triple, Args, Features);
-    break;
   case llvm::Triple::systemz:
     systemz::getSystemZTargetFeatures(D, Args, Features);
     break;
@@ -1635,10 +1632,6 @@ void Clang::RenderTargetOptions(const llvm::Triple &EffectiveTriple,
   case llvm::Triple::riscv64:
     AddRISCVTargetArgs(Args, CmdArgs);
     break;
-  case llvm::Triple::patmos:
-//    assert(false && "Clang patmos target unimplemented");
-    AddPatmosTargetArgs(Args, CmdArgs);
-    break;
 
   case llvm::Triple::sparc:
   case llvm::Triple::sparcel:
@@ -2036,11 +2029,6 @@ void Clang::AddRISCVTargetArgs(const ArgList &Args,
     CmdArgs.push_back("-tune-cpu");
     CmdArgs.push_back(Args.MakeArgString(TuneCPU));
   }
-}
-
-void Clang::AddPatmosTargetArgs(const ArgList &Args,
-                                ArgStringList &CmdArgs) const {
-
 }
 
 void Clang::AddSparcTargetArgs(const ArgList &Args,
@@ -7285,10 +7273,6 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
     AddRISCVTargetArgs(Args, CmdArgs);
-    break;
-  case llvm::Triple::patmos:
-    assert(false && "patmos not implemented for clang-as");
-//    AddPatmosTargetArgs(Args, CmdArgs);
     break;
   }
 

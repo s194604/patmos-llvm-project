@@ -86,7 +86,7 @@ make -j llc && ./bin/llvm-lit ../llvm/test -v --filter=Patmos
 To test Clang:
 
 ```
-make -j clang && ./bin/llvm-lit ../clang/test -v --filter=Patmos
+make -j ClangPatmosTestDeps && ./bin/llvm-lit ../clang/test -v --filter=Patmos
 ```
 
 To test Compiler-RT, go to the`build-compiler-rt` folder:

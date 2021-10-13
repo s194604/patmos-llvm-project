@@ -11,4 +11,4 @@ set_target_properties(mock-patmos-illegal PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	)
 	
-add_dependencies(clang-test-depends mock-patmos-ld mock-patmos-illegal)
+add_dependencies(ClangPatmosTestDeps mock-patmos-ld mock-patmos-illegal)

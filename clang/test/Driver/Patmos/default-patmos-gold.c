@@ -1,4 +1,4 @@
-// RUN: %clang --target=patmos %s -o %t -Xlinker --bogus-patmos-gold-flag 2>&1 | \
+// RUN: %clang --target=patmos %s -o %t -Wl,--bogus-patmos-gold-flag 2>&1 | \
 // RUN: FileCheck %s
 // END.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -11,4 +11,4 @@
 int main() { }
 
 // CHECK: patmos-ld: --bogus-patmos-gold-flag: unknown option
-// CHECK: error: link  via llvm-link, opt and llc command failed
+// CHECK: error: Link final executable command failed

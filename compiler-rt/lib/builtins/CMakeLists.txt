@@ -653,7 +653,6 @@ set(patmos_SOURCES
   divmodsi4.c
   divsf3.c
   divsi3.c
-  divsc3.c
   extendsfdf2.c
   fixdfdi.c
   fixdfsi.c

@@ -3,7 +3,7 @@
 // END.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Tests the environment variable PATMOS_GOLD'
+// Tests the environment variable 'PATMOS_GOLD'
 //
 // We check it by setting the variable to an invalid path and checking that an error is returned.
 //

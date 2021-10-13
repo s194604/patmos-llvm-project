@@ -5,5 +5,8 @@
 //
 // Tests that when producing an object file, the gold linker is not called.
 //
+// We test this by setting 'PATMOS_GOLD' to a program that always fails.
+// If the linker would be called, the program would fail the build.
+// 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main() { }

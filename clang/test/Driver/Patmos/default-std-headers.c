@@ -3,17 +3,12 @@
 // END.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Tests that the builtin include-paths (e.g. lib/clang/12.0.1/include/) are
-// are available.
+// Tests can access the standard library headers by default
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#include <stddef.h>
-
-#ifndef __STDDEF_H
-#error Didn't use builtin headers!
-#endif
+#include <std-test-header.h>
 
 // CHECK: <main>:
 int main() {
-	return 0;
+	return CLANG_TEST_DRIVER_PATMOS_MOCK_INCLUDES_STD_TEST_HEADER;
 }
