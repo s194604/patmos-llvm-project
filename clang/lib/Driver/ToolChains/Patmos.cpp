@@ -1168,10 +1168,12 @@ void patmos::Linker::ConstructJob(
   bool AddLibGloss = AddStdLibs && !LinkRTEMS;
   // add any default libs at all?
   bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
-  // Do not execute llc and gold
+  // Emit LLVM-IR
   bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
-  // Do not execute gold, emit assembly
+  // Emit assembly code
   bool EmitAsm = C.getArgs().hasArg(options::OPT_S);
+  // Emit an object file, not an executable.
+  bool EmitObject = C.getArgs().hasArg(options::OPT_C) || EmitAsm;
 
   if (!AddDefaultLibs) {
     AddRuntimeLibs = false;
@@ -1259,7 +1261,7 @@ void patmos::Linker::ConstructJob(
   }
 
   // If we do not want to create an executable file, we are done now
-  if (EmitAsm) {
+  if (EmitObject) {
     return;
   }
 
