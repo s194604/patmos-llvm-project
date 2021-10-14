@@ -47,6 +47,7 @@ set(PPC32 powerpc)
 set(PPC64 powerpc64 powerpc64le)
 set(RISCV32 riscv32)
 set(RISCV64 riscv64)
+set(PATMOS patmos)
 set(SPARC sparc)
 set(SPARCV9 sparcv9)
 set(WASM32 wasm32)
@@ -62,7 +63,7 @@ endif()
 set(ALL_BUILTIN_SUPPORTED_ARCH
   ${X86} ${X86_64} ${ARM32} ${ARM64}
   ${HEXAGON} ${MIPS32} ${MIPS64} ${PPC32} ${PPC64}
-  ${RISCV32} ${RISCV64} ${SPARC} ${SPARCV9}
+  ${RISCV32} ${RISCV64} ${PATMOS} ${SPARC} ${SPARCV9}
   ${WASM32} ${WASM64} ${VE})
 
 include(CompilerRTUtils)

@@ -7,6 +7,9 @@ inputs:
   path:
     description: 'The path to the directory that needs to be tested relative to $GITHUB_WORKSPACE.'
     required: true
+  working-dir:
+    description: 'The working path for the test.'
+    required: true
   exclude:
     description: 'Exclude tests that start with a given string. Each string must be encapsulated in parentheses and separated by pipes (|).'
     required: true
@@ -23,12 +26,12 @@ inputs:
 runs:
   using: "composite"
   steps: 
-    - working-directory: ${{env.BUILD_PATH}}
+    - working-directory: ${{ inputs.working-dir }}
       shell: bash
       env:
         TARGETS: ${{ inputs.targets }}
       run: make $J $TARGETS
-    - working-directory: ${{env.BUILD_PATH}}
+    - working-directory: ${{ inputs.working-dir }}
       shell: bash
       env:
         EXCLUDE: ${{ inputs.exclude }}
@@ -47,6 +50,6 @@ runs:
           echo "Filter: $FILTER"
           PRE_FILTER="--filter"
         fi
-        ./bin/llvm-lit -v "$GITHUB_WORKSPACE/$TEST_PATH" "$PRE_FILTER" "$FILTER" $LIT_ARGS
+        ./bin/llvm-lit -v $GITHUB_WORKSPACE/$TEST_PATH "$PRE_FILTER" "$FILTER" $LIT_ARGS
     
     

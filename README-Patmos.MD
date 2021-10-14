@@ -34,7 +34,7 @@ The following commands with clone only the parts of the Patmos LLVM repository t
 ```
 git clone --filter=blob:none --sparse git@github.com:t-crest/patmos-llvm-project
 cd patmos-llvm-project
-git sparse-checkout add /.github /llvm /clang
+git sparse-checkout add /.github /llvm /clang /compiler-rt
 ```
 
 ### Build
@@ -48,7 +48,16 @@ In this folder, you must setup the build with `cmake` (referencing the LLVM subf
 ```
 mkdir -p build
 cd build
-cmake ../llvm -DCMAKE_BUILD_TYPE=Debug -DLLVM_TARGETS_TO_BUILD=Patmos -DLLVM_DEFAULT_TARGET_TRIPLE=patmos-unknown-unknown-elf -DLLVM_ENABLE_PROJECTS="clang" -DCLANG_ENABLE_ARCMT=false -DCLANG_ENABLE_STATIC_ANALYZER=false -DCLANG_BUILD_EXAMPLES=false -DLLVM_ENABLE_BINDINGS=false -DLLVM_INSTALL_BINUTILS_SYMLINKS=false -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false -DLLVM_INCLUDE_EXAMPLES=false -DLLVM_INCLUDE_BENCHMARKS=false -DLLVM_APPEND_VC_REV=false -DLLVM_ENABLE_WARNINGS=false -DLLVM_ENABLE_PEDANTIC=false -DLLVM_ENABLE_LIBPFM=false -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false -DLLVM_INSTALL_UTILS=false
+cmake ../llvm -DCMAKE_BUILD_TYPE=Debug -DLLVM_TARGETS_TO_BUILD="Patmos" -DLLVM_DEFAULT_TARGET_TRIPLE=patmos-unknown-unknown-elf -DLLVM_ENABLE_PROJECTS="clang" -DCLANG_ENABLE_ARCMT=false -DCLANG_ENABLE_STATIC_ANALYZER=false -DCLANG_BUILD_EXAMPLES=false -DLLVM_ENABLE_BINDINGS=false -DLLVM_INSTALL_BINUTILS_SYMLINKS=false -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false -DLLVM_INCLUDE_EXAMPLES=false -DLLVM_INCLUDE_BENCHMARKS=false -DLLVM_APPEND_VC_REV=false -DLLVM_ENABLE_WARNINGS=false -DLLVM_ENABLE_PEDANTIC=false -DLLVM_ENABLE_LIBPFM=false -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false -DLLVM_INSTALL_UTILS=false
+make -j
+```
+
+If you need to work on Compiler-RT, you can do the following (from the root folder):
+
+```
+mkdir -p build-compiler-rt
+cd build-compiler-rt
+cmake ../compiler-rt/ -DCMAKE_TOOLCHAIN_FILE=../compiler-rt/cmake/patmos-clang-toolchain.cmake -DCMAKE_PROGRAM_PATH="$(pwd)/../build/bin" -DCOMPILER_RT_INCLUDE_TESTS=ON
 make -j
 ```
 
@@ -59,6 +68,12 @@ Then it is simple enough. From the build folder a single command can be used:
 
 ```
 make check-all
+```
+
+To run the Compiler-RT tests:
+```
+cd build-compiler-rt
+./bin/llvm-lit -v test/builtins/Unit/patmos
 ```
 
 ### <a name="anch-updating-llvm"></a>Updating LLVM

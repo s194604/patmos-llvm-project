@@ -21,18 +21,19 @@ inputs:
     description: 'Include tests, testing only the given. Should be a pipe-separated list.'
     required: true
     default: 'Patmos'
+  compiler-rt-tests:
+    description: 'Which folder under build-compiler-rt/test/builtins/Unit/ to test'
+    required: true
+    default: 'patmos'
         
 runs:
   using: "composite"
   steps: 
-    - run: echo "::group::Check Arguments"
+    - name: Create build folders
       shell: bash
-    - run: ${{(inputs.exclude-reg != '') || startsWith('|', inputs.exclude-reg)}}
-      shell: bash
-    - shell: bash
       run: |
-        echo "Creating Build Folder '$GITHUB_WORKSPACE/$BUILD_PATH'"
         mkdir -p $BUILD_PATH
+        mkdir -p $COMPILER_RT_BUILD_PATH
     - run: echo "::group::Configure LLVM Build"
       shell: bash
     - working-directory: ${{env.BUILD_PATH}}
@@ -48,7 +49,7 @@ runs:
           -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_PATH \
           -DLLVM_TARGETS_TO_BUILD=$TARGETS \
           -DLLVM_DEFAULT_TARGET_TRIPLE=$DEFAULT_TARGET \
-          -DLLVM_ENABLE_PROJECTS=clang \
+          -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" \
           -DCLANG_ENABLE_ARCMT=false \
           -DCLANG_ENABLE_STATIC_ANALYZER=false \
           -DCLANG_BUILD_EXAMPLES=false \
@@ -69,6 +70,7 @@ runs:
       with:
         targets: UnitTests FileCheck count not lli llvm-strip llvm-install-name-tool dsymutil lli-child-target llvm-as llvm-bcanalyzer llvm-config llvm-cov llvm-cxxdump llvm-cvtres llvm-diff llvm-dis llvm-dwarfdump llvm-exegesis llvm-extract llvm-isel-fuzzer llvm-ifs llvm-jitlink llvm-opt-fuzzer llvm-lib llvm-link llvm-lto llvm-lto2 llvm-mc llvm-mca llvm-modextract llvm-nm llvm-objdump llvm-pdbutil llvm-profdata llvm-ranlib llvm-rc llvm-readelf llvm-rtdyld llvm-size llvm-split llvm-strings llvm-undname llvm-c-test llvm-cxxfilt llvm-xray yaml2obj obj2yaml yaml-bench verify-uselistorder bugpoint llc llvm-symbolizer opt sancov sanstats llvm-addr2line
         path: ${{env.LLVM_PATH}}/test
+        working-dir: ${{env.BUILD_PATH}}
         include: LLVM-Unit.*(${{inputs.include-only}})
         exclude: ${{inputs.exclude-reg}}
     - name: LLVM Regression Tests
@@ -76,13 +78,15 @@ runs:
       with:
         targets: BugpointPasses llvm-cat llvm-opt-report llvm-mt llvm-dwp llvm-reduce llvm-lipo llvm-elfabi llvm-dlltool llvm-cxxmap llvm-cfi-verify split-file llvm-bitcode-strip llvm-dlltool llvm-opt-report llvm-lipo llvm-ml llvm-libtool-darwin llvm-gsymutil llvm-elfabi llvm-dwp llvm-mt llvm-cfi-verify llvm-cxxmap llvm-cat llvm-reduce
         path: ${{env.LLVM_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
         include: ${{inputs.include-only}}
         exclude: LLVM-Unit
     - name: Clang Unit Tests
       uses: ./.github/actions/build-test
       with:
-        targets: ClangUnitTests clang
+        targets: clang-test-depends clang
         path: ${{env.CLANG_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
         include: Clang-Unit.*(${{inputs.include-only}})
         exclude: ${{inputs.exclude-reg}}
         lit-args: --allow-empty-runs
@@ -91,7 +95,39 @@ runs:
       with:
         targets: apinotes-test c-index-test clang-diff clang-format clang-scan-deps clang-import-test clang-rename diagtool hmaptool clang-refactor
         path: ${{env.CLANG_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
         include: ${{inputs.include-only}}
         exclude: Clang-Unit
-    
-    
+    - name: Configure Compiler-RT Build (Non-Patmos)
+      if: ${{ !startsWith(inputs.default-target, 'patmos') }}
+      working-directory: ${{env.COMPILER_RT_BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$COMPILER_RT_PATH \
+          -DCOMPILER_RT_INCLUDE_TESTS=ON \
+          -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+          -DCOMPILER_RT_TEST_COMPILER="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" \
+          -DLLVM_CONFIG_PATH="$GITHUB_WORKSPACE/$BUILD_PATH/bin/llvm-config" \
+          -DCMAKE_C_COMPILER="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" \
+          -DCMAKE_CXX_COMPILER="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang++" \
+          -DCMAKE_C_COMPILER_TARGET="${{inputs.default-target}}"
+    - name: Configure Compiler-RT Build
+      if: startsWith(inputs.default-target, 'patmos')
+      working-directory: ${{env.COMPILER_RT_BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$COMPILER_RT_PATH \
+          -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/$COMPILER_RT_PATH/cmake/patmos-clang-toolchain.cmake" \
+          -DCMAKE_PROGRAM_PATH="$GITHUB_WORKSPACE/$BUILD_PATH/bin" \
+          -DCOMPILER_RT_INCLUDE_TESTS=ON
+    - name: Compiler-RT Unit Tests
+      uses: ./.github/actions/build-test
+      with:
+        targets: '' 
+        path: ${{env.COMPILER_RT_BUILD_PATH}}/test/builtins/Unit/${{inputs.compiler-rt-tests}}
+        working-dir: ${{env.COMPILER_RT_BUILD_PATH}}
+        exclude: ${{inputs.exclude-reg}}

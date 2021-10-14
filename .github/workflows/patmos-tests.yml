@@ -15,6 +15,8 @@ env:
   INSTALL_PATH: build/local
   LLVM_PATH: llvm
   CLANG_PATH: clang
+  COMPILER_RT_PATH: compiler-rt
+  COMPILER_RT_BUILD_PATH: build-compiler-rt
   
 jobs:
   test-non-patmos:
@@ -30,13 +32,13 @@ jobs:
       - name: Build and Run LLVM Unit and Regression Tests
         uses: ./.github/actions/build-test-all
         with:
-          targets: X86;AArch64;RISCV
+          targets: X86
           enable-assertions: true
           # Exclude known failing tests
           exclude-reg: "(Clang :: Lexer/case-insensitive-include.c)|(Clang :: Lexer/case-insensitive-system-include.c)|(Clang :: Modules/inferred-framework-case.m)|(Clang :: Preprocessor/nonportable-include-with-hmap.c)"
-          # Don't limit tests to Patmos
           include-only: "."
           default-target: x86_64-unknown-linux-gnu
+          compiler-rt-tests: 'X86_64LinuxConfig'
       - name: Finalize LLVM Build
         working-directory: ${{env.BUILD_PATH}}
         run: make $J llc llvm-link clang llvm-config llvm-objdump opt
