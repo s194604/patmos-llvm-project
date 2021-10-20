@@ -32,16 +32,16 @@ void llvm::getMBBIRName(const MachineBasicBlock *MBB,
 
 std::pair<int,int> llvm::getLoopBounds(const MachineBasicBlock * MBB) {
   if(MBB && MBB->getBasicBlock()) {
-    if (auto loop_bound_meta = MBB->getBasicBlock()->getTerminator()->getMetadata("llvm.loop")) {
+    if (auto loop_meta = MBB->getBasicBlock()->getTerminator()->getMetadata("llvm.loop")) {
       // We ignore the first metadata operand, as it is always a self-reference
       // in "llvm.loop".
-      for(int i = 1, end = loop_bound_meta->getNumOperands(); i < end; i++) {
-        auto meta_op_node = dyn_cast<llvm::MDNode>(loop_bound_meta->getOperand(i).get());
+      for(int i = 1, end = loop_meta->getNumOperands(); i < end; i++) {
+        auto meta_op_node = dyn_cast<llvm::MDNode>(loop_meta->getOperand(i).get());
         if( meta_op_node->getNumOperands() >= 1 ){
           auto name = cast_or_null<MDString>(meta_op_node->getOperand(0));
-          auto min_node = cast_or_null<ValueAsMetadata>(meta_op_node->getOperand(1))->getValue();
-          auto max_node = cast_or_null<ValueAsMetadata>(meta_op_node->getOperand(2))->getValue();
           if( name && name->getString() == "llvm.loop.bound") {
+            auto min_node = cast_or_null<ValueAsMetadata>(meta_op_node->getOperand(1))->getValue();
+            auto max_node = cast_or_null<ValueAsMetadata>(meta_op_node->getOperand(2))->getValue();
             if(min_node && max_node &&
                min_node->getType()->isIntegerTy() &&
                max_node->getType()->isIntegerTy()
