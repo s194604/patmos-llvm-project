@@ -24,6 +24,10 @@ class PatmosSelectionDAGInfo : public SelectionDAGTargetInfo {
 public:
   explicit PatmosSelectionDAGInfo();
   ~PatmosSelectionDAGInfo();
+
+  bool disableGenericCombines(CodeGenOpt::Level OptLevel) const override {
+    return false;
+  }
 };
 
 }

@@ -31,9 +31,6 @@ namespace llvm {
 class PatmosTargetMachine : public LLVMTargetMachine {
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
   PatmosSubtarget        Subtarget;
-  PatmosInstrInfo        InstrInfo;
-  PatmosSelectionDAGInfo TSInfo;
-
 public:
   PatmosTargetMachine(const Target &T,
                       const Triple &TT,
@@ -44,7 +41,7 @@ public:
                       Optional<CodeModel::Model> CM,
                       CodeGenOpt::Level L, bool JIT);
 
-  const PatmosInstrInfo *getInstrInfo() const { return &InstrInfo; }
+  const PatmosInstrInfo *getInstrInfo() const { return Subtarget.getInstrInfo(); }
   const DataLayout *getDataLayout() const { return &DL;}
   const PatmosSubtarget *getSubtargetImpl(const Function &F) const override{
     return getSubtargetImpl();
@@ -52,11 +49,7 @@ public:
   const PatmosSubtarget *getSubtargetImpl() const { return &Subtarget; }
 
   const TargetRegisterInfo *getRegisterInfo() const {
-    return &InstrInfo.getRegisterInfo();
-  }
-
-  const PatmosSelectionDAGInfo* getSelectionDAGInfo() const {
-    return &TSInfo;
+    return &Subtarget.getInstrInfo()->getRegisterInfo();
   }
 
   TargetLoweringObjectFile *getObjFileLowering() const override {
