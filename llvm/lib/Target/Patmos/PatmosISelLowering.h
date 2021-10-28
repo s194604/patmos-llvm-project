@@ -70,6 +70,17 @@ namespace llvm {
       return 4;
     }
 
+    bool isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
+      // Disallow GlobalAddresses to contain offsets (e.g. x + 4)
+      // As patmos-ld doesn't know how to fix that when resolving
+      // 'x' as a symbol.
+      //
+      // Setting this to false forces LLVM to instead put the offset
+      // in the using instructions, e.g. loads would put '+4' in their
+      // immediate offset.
+      return false;
+    }
+
     /******************************************************************
      * Jump Tables
      ******************************************************************/
