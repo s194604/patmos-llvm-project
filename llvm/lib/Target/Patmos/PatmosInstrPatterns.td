@@ -37,6 +37,8 @@ def : Pat<(sub predsel:$p1, predsel:$p2), (PXOR predsel:$p1, predsel:$p2)>;
 // TODO extend this for other operators, if needed.
 // TODO there should be a better way to do this ?!
 def : Pat<(setcc (i1 predsel:$p1), (i1 predsel:$p2), SETNE), (PXOR predsel:$p1, predsel:$p2)>;
+// Emulate Equals through xor: p1 eq p2 => p1 xor !p2
+def : Pat<(setcc (i1 predsel:$p1), (i1 predselinv:$p2), SETEQ), (PXOR predsel:$p1, predselinv:$p2)>;
 
 
 //def : Pat<(select RRegs:$rp, RRegs:$rs1, RRegs:$rs2), (CMOV (BTEST RRegs:$rp, 0), RRegs:$rs1, RRegs:$rs2)>;
