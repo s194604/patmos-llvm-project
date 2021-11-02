@@ -11,8 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PatmosSubtarget.h"
 #include "Patmos.h"
+#include "PatmosSubtarget.h"
+#include "PatmosTargetMachine.h"
 #include "MCTargetDesc/PatmosMCTargetDesc.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
@@ -96,7 +97,7 @@ PatmosSubtarget::PatmosSubtarget(const Triple &TT,
                                  StringRef CPU,
                                  StringRef FS, const PatmosTargetMachine &TM, CodeGenOpt::Level L) :
   PatmosGenSubtargetInfo(TT, CPU, CPU, FS), TSInfo(),InstrInfo(new PatmosInstrInfo(TM)),
-  FrameLowering(new PatmosFrameLowering(*this)),
+  FrameLowering(new PatmosFrameLowering(*this, TM.getDataLayout())),
   TLInfo(new PatmosTargetLowering(TM, *this)), OptLevel(L)
 {
   auto CPUName = CPU;

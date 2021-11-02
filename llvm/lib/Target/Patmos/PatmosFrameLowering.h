@@ -67,8 +67,8 @@ protected:
   /// \see PatmosMachineFunctionInfo
   void patchCallSites(MachineFunction &MF) const;
 public:
-  explicit PatmosFrameLowering(const PatmosSubtarget &sti)
-        : TargetFrameLowering(StackGrowsDown, Align(8), 0), STC(sti) {
+  explicit PatmosFrameLowering(const PatmosSubtarget &sti, const DataLayout* DL)
+        : TargetFrameLowering(StackGrowsDown, DL->getStackAlignment(), 0), STC(sti) {
     }
 
   /// emitProlog/emitEpilog - These methods insert prolog and epilog code into

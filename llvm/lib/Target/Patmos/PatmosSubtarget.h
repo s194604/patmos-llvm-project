@@ -137,8 +137,6 @@ public:
   /// @param frameSize the required frame size in bytes.
   unsigned getAlignedStackFrameSize(unsigned frameSize) const;
 
-  Align getStackAlignment() const { return Align(8); }
-
 };
 } // End llvm namespace
 

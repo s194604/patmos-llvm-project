@@ -373,7 +373,7 @@ PatmosTargetLowering::LowerCCCArguments(SDValue Chain,
                                         SmallVectorImpl<SDValue> &InVals
                                         ) const {
 
-  auto MFI = DAG.getMachineFunction().getFrameInfo();
+  MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
   MachineRegisterInfo &RegInfo = DAG.getMachineFunction().getRegInfo();
   PatmosMachineFunctionInfo &PMFI = *DAG.getMachineFunction().getInfo<PatmosMachineFunctionInfo>();
 
