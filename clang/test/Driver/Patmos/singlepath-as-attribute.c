@@ -1,4 +1,4 @@
-// RUN: %clang --target=patmos %s %no-libs -S -emit-llvm -o - | FileCheck %s
+// RUN: %clang --target=patmos %s -S -emit-llvm -o - | FileCheck %s
 // END.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //

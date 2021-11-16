@@ -1154,34 +1154,27 @@ void patmos::Linker::ConstructJob(
   StringRef FloatABI = getPatmosFloatABI(TC.getDriver(), C.getArgs(),
                                          TC.getTriple(), ChangedFloatABI);
 
-  // add lib*syms.o options to llvm-link
-  bool AddLibSyms = !C.getArgs().hasArg(options::OPT_emit_static_lib);
-  // add crt0
-  bool AddStartFiles = !C.getArgs().hasArg(options::OPT_nostartfiles, options::OPT_emit_static_lib);
-  // add librt, librtsf
-  bool AddRuntimeLibs = !C.getArgs().hasArg(options::OPT_emit_static_lib);
-  // add libpatmos, libc, ..
-  bool AddStdLibs = !C.getArgs().hasArg(options::OPT_nostdlib, options::OPT_emit_static_lib);
-  // add libc
-  bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
-  // add support library for newlib libc
-  bool AddLibGloss = AddStdLibs && !LinkRTEMS;
-  // add any default libs at all?
-  bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
-  // Emit LLVM-IR
-  bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
   // Emit assembly code
   bool EmitAsm = C.getArgs().hasArg(options::OPT_S);
   // Emit an object file, not an executable.
   bool EmitObject = C.getArgs().hasArg(options::OPT_C) || EmitAsm;
+  // Emit LLVM-IR
+  bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
 
-  if (!AddDefaultLibs) {
-    AddRuntimeLibs = false;
-    AddStdLibs = false;
-    AddLibC = false;
-    AddLibGloss = false;
-  }
-  bool StopAfterLink = EmitLLVM;
+  // add lib*syms.o options to llvm-link
+  bool AddLibSyms = !EmitObject;
+  // add crt0
+  bool AddStartFiles = !EmitObject;
+  // add librt, librtsf
+  bool AddRuntimeLibs = !EmitObject;
+  // add libpatmos, libc, ..
+  bool AddStdLibs = !EmitObject;
+  // add libc
+  bool AddLibC = !EmitObject;
+  // add support library for newlib libc
+  bool AddLibGloss = AddStdLibs && !LinkRTEMS;
+  // add any default libs at all?
+  bool AddDefaultLibs = !EmitObject;
 
   if (Arg *A = Args.getLastArg(options::OPT_shared)) {
     D.Diag(diag::err_drv_unsupported_opt) << A->getAsString(Args);
@@ -1195,12 +1188,12 @@ void patmos::Linker::ConstructJob(
   // Prepare linker arguments
 
   const char *linkedBCFileName =
-           CreateOutputFilename(C, Output, "link-", "bc", StopAfterLink);
+           CreateOutputFilename(C, Output, "link-", "bc", EmitLLVM);
 
   ArgStringList LinkInputs, GoldInputs;
   unsigned linkedOFileInsertPos;
 
-  bool HasGoldPass = !StopAfterLink && !EmitLLVM;
+  bool HasGoldPass = !EmitLLVM;
 
   const char *BCFile = PrepareLinkerInputs(Args, Inputs,
                          LinkInputs, GoldInputs,
@@ -1210,7 +1203,7 @@ void patmos::Linker::ConstructJob(
                          AddDefaultLibs, HasGoldPass, false);
 
   bool RequiresLink = true;
-  if ((!BCFile || BCFile != linkedBCFileName) && !StopAfterLink) {
+  if ((!BCFile || BCFile != linkedBCFileName) && !EmitLLVM) {
     // No bitcode input, or only a single bitcode input file, skip link
     // pass and use input directly if it is a single file.
     RequiresLink = false;
@@ -1224,7 +1217,8 @@ void patmos::Linker::ConstructJob(
     ConstructLinkJob(*this, C, JA, Output, Inputs, linkedBCFileName, LinkInputs, Args);
   }
 
-  if (StopAfterLink) {
+  // Stop after LLVM-link
+  if (EmitLLVM) {
     return;
   }
 
