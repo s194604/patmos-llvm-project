@@ -104,6 +104,11 @@ void PatmosToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                                ArgStringList &CC1Args) const {
   if (!DriverArgs.hasArg(options::OPT_nostdinc) &&
       !DriverArgs.hasArg(options::OPT_nostdlibinc)) {
+
+    // We don't want actual system includes to be used as they will never be useful
+    // E.g. "/usr/local/include" or "/usr/include"
+    CC1Args.push_back("-nostdsysteminc");
+
     const ToolChain::path_list &filePaths = getFilePaths();
     for(ToolChain::path_list::const_iterator i = filePaths.begin(),
         ie = filePaths.end(); i != ie; i++) {
