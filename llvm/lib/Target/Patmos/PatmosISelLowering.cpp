@@ -698,11 +698,7 @@ getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
     switch (Constraint[0]) {
     case 'R':  // r0-r31
     case 'r':  // general purpose registers
-      //if (VT == MVT::i32) {
         return std::make_pair(0U, &Patmos::RRegsRegClass);
-      //}
-      //assert("Unexpected register type");
-      //return std::make_pair(0U, static_cast<const TargetRegisterClass*>(0));
     case 'S':
       if (VT == MVT::i32) {
         return std::make_pair(0U, &Patmos::SRegsRegClass);
@@ -715,22 +711,10 @@ getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       }
       assert("Unexpected register type");
       return std::make_pair(0U, static_cast<const TargetRegisterClass*>(0));
-
-    // TODO support for i,n,m,o,X,f,.. (immediates, floats?, memory, labels,..) ??
-
     }
   }
-  // Handle '{$<regname>}'
-  if (Constraint.size() > 2 && Constraint[0] == '{' && Constraint[1] == '$') {
-    auto Stripped = ("{" + Constraint.substr(2)).getSingleStringRef();
-    return TargetLowering::getRegForInlineAsmConstraint(TRI, Stripped, VT);
-  }
-  // Handle everything else ('{<regname}, ..)
   return TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
 }
-
-
-
 
 SDValue
 PatmosTargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {

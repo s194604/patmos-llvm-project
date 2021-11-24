@@ -1,4 +1,7 @@
 ; RUN: %test_no_runtime_execution
+
+; Tests can use bundled instruction that are also predicated
+
 define i32 @main() {
 entry:
   %0 = call i32 asm "
