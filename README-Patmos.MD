@@ -64,15 +64,23 @@ make -j
 ### Test
 
 To run the tests you must first build following the previous section.
-Then it is simple enough. From the build folder a single command can be used:
+Then it is simple enough. From the build folder we have 2 commands.
+
+To test LLVM:
 
 ```
-make check-all
+make -j llc && ./bin/llvm-lit ../llvm/test -v --filter=Patmos
 ```
 
-To run the Compiler-RT tests:
+To test Clang:
+
 ```
-cd build-compiler-rt
+make -j clang && ./bin/llvm-lit ../clang/test -v --filter=Patmos
+```
+
+To test Compiler-RT, go to the`build-compiler-rt` folder:
+
+```
 ./bin/llvm-lit -v test/builtins/Unit/patmos
 ```
 
