@@ -11,7 +11,7 @@ if which("pasim") is None:
     print("Patmos simulator 'pasim' could not be found.")
     sys.exit(1)
 
-if len(sys.argv) <= 7:
+if len(sys.argv) <= 6:
     print("Must have at least 2 execution arguments but was:", sys.argv[6:])
     sys.exit(1)
    
@@ -29,28 +29,8 @@ compiled = sys.argv[3]
 # The object file of the start function to be linked with the program
 start_function = sys.argv[4]
 
-# Additional arguments to pass to LLC
-llc_args = sys.argv[5]
-
 # The first execution argument
-exec_arg = sys.argv[6]
-
-using_singlepath = "-mpatmos-singlepath=" in llc_args
-    
-# Try to compile the program to rule out compile errors. Throw out the result.
-if subprocess.run([bin_dir+"/llc", bitcode] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
-    print("Failed to compile ", bitcode)
-    sys.exit(1)
-
-# Link start function with program
-if subprocess.run([bin_dir+"/llvm-link", start_function, bitcode, "-o", compiled]).returncode != 0:
-    print("Failed to link '", bitcode, "' and '", start_function, "'")
-    sys.exit(1)
-    
-# Compile into object file (not ELF yet)
-if subprocess.run([bin_dir+"/llc", compiled] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
-    print("Failed to compile '", bitcode, "'")
-    sys.exit(1)
+exec_arg = sys.argv[5]
 
 # It cleans the given pasim statistics
 # leaving only the stats needed to ensure two run of a singlepath
@@ -147,31 +127,75 @@ def execute_and_stat(program, args):
         sys.stderr.write(pasim_stats + "\n")
         sys.stderr.write("--------------------------------------------------\n")
         return True, ""
-        
-# Run the first execution argument on its own,
-# such that its stats result can be compared to
-# all other executions
-first_stats_failed, first_stats=execute_and_stat(compiled, exec_arg)
-if first_stats_failed:
-    print(first_stats)
-    sys.exit(1)
-  
-# Run the rest of the execution arguments.
-# For each one, compare to the first. If they all
-# are equal to the first, they must also be equal to each other,
-# so we don't need to compare them to each other.
-for i in sys.argv[7:]:
-        
-    rest_failed, rest_stats=execute_and_stat(compiled, i)
-    if rest_failed:
+       
+# Compile and test using the given LLC arguments.
+def compile_and_test(llc_args):
+    def throw_error(*msgs):
+        for msg in msgs:
+            print(msg, end = '')
+        print("\nLLC args: ", llc_args)
         sys.exit(1)
-    
-    if using_singlepath:
-        if first_stats != rest_stats:
-            import difflib
-            sys.stderr.writelines(difflib.context_diff(first_stats.split("\n"), rest_stats.split("\n")))
-            print("The execution of '", compiled, "' for execution arguments '", exec_arg, "' and '", i, "' weren't equivalent")
-            sys.exit(1)
+        
+    using_singlepath = "-mpatmos-singlepath=" in llc_args
+        
+    # Try to compile the program to rule out compile errors. Throw out the result.
+    if subprocess.run([bin_dir+"/llc", bitcode] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
+        throw_error("Failed to compile ", bitcode)
+
+    # Link start function with program
+    if subprocess.run([bin_dir+"/llvm-link", start_function, bitcode, "-o", compiled]).returncode != 0:
+        throw_error("Failed to link '", bitcode, "' and '", start_function, "'")
+        
+    # Compile into object file (not ELF yet)
+    if subprocess.run([bin_dir+"/llc", compiled] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
+        throw_error("Failed to compile '", bitcode, "'")
+
+     
+    # Run the first execution argument on its own,
+    # such that its stats result can be compared to
+    # all other executions
+    first_stats_failed, first_stats=execute_and_stat(compiled, exec_arg)
+    if first_stats_failed:
+        throw_error(first_stats)
+
+      
+    # Run the rest of the execution arguments.
+    # For each one, compare to the first. If they all
+    # are equal to the first, they must also be equal to each other,
+    # so we don't need to compare them to each other.
+    for i in sys.argv[6:]:
+            
+        rest_failed, rest_stats=execute_and_stat(compiled, i)
+        if rest_failed:
+            throw_error()
+        
+        if using_singlepath:
+            if first_stats != rest_stats:
+                import difflib
+                sys.stderr.writelines(difflib.context_diff(first_stats.split("\n"), rest_stats.split("\n")))
+                throw_error("The execution of '", compiled, "' for execution arguments '", exec_arg, "' and '", i, "' weren't equivalent")
+
+# Compile and test all compinations in the given matrix
+# Each list in the matrix is a group of flags that each
+# should be compled/test with every element in the other groups.
+#
+# The matrix argument are added to the given arguments
+def compile_and_test_matrix(llc_args, matrix):
+    if len(matrix) == 0:
+        compile_and_test(llc_args)
+    else:
+        for arg in matrix[0]:
+            compile_and_test_matrix(llc_args + " " + arg, matrix[1:])
+
+compile_and_test_matrix("", [
+    [
+        "", # Traditional code
+        "-mpatmos-singlepath=main", # Single-path code without dual-issue
+        "-mpatmos-singlepath=main -mpatmos-disable-vliw=false" # Single-path with dual-issue
+    ],
+    # Optimization levels
+    ["", "-O1", "-O2"]
+])
 
 # Success
 sys.exit(0)
