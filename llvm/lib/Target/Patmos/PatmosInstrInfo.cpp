@@ -41,6 +41,8 @@ PatmosInstrInfo::PatmosInstrInfo(const PatmosTargetMachine &tm)
 bool PatmosInstrInfo::findCommutedOpIndices(const MachineInstr &MI,
                                             unsigned &SrcOpIdx1,
                                             unsigned &SrcOpIdx2) const {
+  unsigned op1, op2;
+
   switch (MI.getOpcode())
   {
     case Patmos::ADDr: case Patmos::ADDr_ow:
@@ -48,18 +50,25 @@ bool PatmosInstrInfo::findCommutedOpIndices(const MachineInstr &MI,
     case Patmos::ANDr: case Patmos::ANDr_ow:
     case Patmos::XORr: case Patmos::XORr_ow:
     case Patmos::NORr: case Patmos::NORr_ow:
-      SrcOpIdx1 = 3;
-      SrcOpIdx2 = 4;
-      return true;
+      op1 = 3;
+      op2 = 4;
+      break;
     case Patmos::MUL:
     case Patmos::MULU:
-      SrcOpIdx1 = 2;
-      SrcOpIdx2 = 3;
-      return true;
+      op1 = 2;
+      op2 = 3;
+      break;
     default:
-      llvm_unreachable("Unexpected commutable machine instruction.");
+      // Not commutable
+      return false;
   }
-  return false;
+  if (!fixCommutedOpIndices(SrcOpIdx1, SrcOpIdx2, op1, op2) ||
+      !MI.getOperand(SrcOpIdx1).isReg() || !MI.getOperand(SrcOpIdx2).isReg()
+  ){
+    return false;
+  }
+
+  return true;
 }
 
 void PatmosInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
