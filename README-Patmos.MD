@@ -61,6 +61,17 @@ cmake ../compiler-rt/ -DCMAKE_TOOLCHAIN_FILE=../compiler-rt/cmake/patmos-clang-t
 make -j
 ```
 
+If you need to build the standard library (newlib):
+
+```
+git clone https://github.com/t-crest/patmos-newlib
+mkdir build-newlib
+cd build-newlib
+../patmos-newlib/configure --target=patmos-unknown-unknown-elf AR_FOR_TARGET=ar CC_FOR_TARGET="$(pwd)/../build/bin/clang" CFLAGS_FOR_TARGET="-target patmos-unknown-unknown-elf -O2 -emit-llvm -D__GLIBC_USE\(...\)=0" RANLIB_FOR_TARGET=ranlib LD_FOR_TARGET="$(pwd)/../build/bin/clang"
+make
+```
+This compiles std into bitcode files, such that they are ready to publish with the compiler.
+
 ### Test
 
 To run the tests you must first build following the previous section.

@@ -25,15 +25,20 @@ inputs:
     description: 'Which folder under build-compiler-rt/test/builtins/Unit/ to test'
     required: true
     default: 'patmos'
+  newlib-enable:
+    description: 'Whether Newlib should compiled.'
+    required: true
+    default: true
         
 runs:
   using: "composite"
-  steps: 
+  steps:
     - name: Create build folders
       shell: bash
       run: |
         mkdir -p $BUILD_PATH
         mkdir -p $COMPILER_RT_BUILD_PATH
+        mkdir -p $NEWLIB_BUILD_PATH
     - run: echo "::group::Configure LLVM Build"
       shell: bash
     - working-directory: ${{env.BUILD_PATH}}
@@ -131,3 +136,30 @@ runs:
         path: ${{env.COMPILER_RT_BUILD_PATH}}/test/builtins/Unit/${{inputs.compiler-rt-tests}}
         working-dir: ${{env.COMPILER_RT_BUILD_PATH}}
         exclude: ${{inputs.exclude-reg}}
+    - name: Download Newlib
+      if: inputs.newlib-enable == 'true'
+      env:
+        NEWLIB_COMMIT: 1304d2463ae91470d898c92216729175325afde1
+      shell: bash
+      run: |
+        git clone https://github.com/emoun/patmos-newlib ${{env.NEWLIB_PATH}}
+        cd ${{env.NEWLIB_PATH}}
+        git checkout $NEWLIB_COMMIT
+    # Builds newlib to Patmos assembly (instead of bitcode)
+    # to ensure that it compiles successfully
+    - name: Test-Build Newlib
+      if: inputs.newlib-enable == 'true'
+      working-directory: ${{env.NEWLIB_BUILD_PATH}}
+      shell: bash
+      run: |
+        $GITHUB_WORKSPACE/$NEWLIB_PATH/configure --target=patmos-unknown-unknown-elf AR_FOR_TARGET=ar CC_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" CFLAGS_FOR_TARGET="-target patmos-unknown-unknown-elf -O2 -D__GLIBC_USE\(...\)=0" RANLIB_FOR_TARGET=ranlib LD_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang"
+        make $J
+        rm -rf *
+    # Build newlib properly to LLVM-IR
+    - name: Build Newlib
+      if: inputs.newlib-enable == 'true'
+      working-directory: ${{env.NEWLIB_BUILD_PATH}}
+      shell: bash
+      run: |
+        $GITHUB_WORKSPACE/$NEWLIB_PATH/configure --target=patmos-unknown-unknown-elf AR_FOR_TARGET=ar CC_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" CFLAGS_FOR_TARGET="-target patmos-unknown-unknown-elf -O2 -emit-llvm -D__GLIBC_USE\(...\)=0" RANLIB_FOR_TARGET=ranlib LD_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang"
+        make $J
