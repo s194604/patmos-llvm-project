@@ -713,6 +713,12 @@ getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       return std::make_pair(0U, static_cast<const TargetRegisterClass*>(0));
     }
   }
+  // Previously, '{$rx}' was allowed as a constraint.
+  // Use of '$' preceding the register is not allowed now.
+  // This ensures a sensible error message is printed if anyone accidentally does it.
+  if (Constraint.size() > 2 && Constraint[0] == '{' && Constraint[1] == '$') {
+    report_fatal_error("Inline assembly clobbers cannot have '$' preceding clobbered registers");
+  }
   return TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
 }
 
