@@ -179,7 +179,6 @@ PatmosTargetLowering::PatmosTargetLowering(const PatmosTargetMachine &tm,
 
 }
 
-
 SDValue PatmosTargetLowering::LowerOperation(SDValue Op,
                                              SelectionDAG &DAG) const {
 
@@ -213,7 +212,6 @@ const MCExpr * PatmosTargetLowering::LowerCustomJumpTableEntry(
   return MCSymbolRefExpr::create(MBB->getSymbol(), OutContext);
 }
 
-
 //===----------------------------------------------------------------------===//
 //                      Custom Lower Operation
 //===----------------------------------------------------------------------===//
@@ -233,7 +231,6 @@ SDValue PatmosTargetLowering::LowerLOAD(SDValue Op, SelectionDAG &DAG) const {
   SDValue Ops[2] = { newTrunc, newLoad.getOperand(0) };
   return DAG.getMergeValues(Ops, Op);
 }
-
 
 SDValue PatmosTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG) const {
   StoreSDNode *store = static_cast<StoreSDNode*>(Op.getNode());
@@ -278,7 +275,6 @@ SDValue PatmosTargetLowering::LowerMUL_LOHI(SDValue Op,
   return DAG.getMergeValues(Vals, dl);
 }
 
-
 SDValue PatmosTargetLowering::LowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const {
   auto MFI = DAG.getMachineFunction().getFrameInfo();
   MFI.setReturnAddressIsTaken(true);
@@ -314,7 +310,6 @@ SDValue PatmosTargetLowering::LowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) cons
   return FrameAddr;
 }
 
-
 //===----------------------------------------------------------------------===//
 //                      Calling Convention Implementation
 //===----------------------------------------------------------------------===//
@@ -338,9 +333,6 @@ PatmosTargetLowering::LowerFormalArguments(SDValue Chain,
   }
 }
 
-
-
-
 SDValue
 PatmosTargetLowering::LowerCall(CallLoweringInfo &CLI,
                                 SmallVectorImpl<SDValue> &InVals) const {
@@ -355,8 +347,6 @@ PatmosTargetLowering::LowerCall(CallLoweringInfo &CLI,
     return LowerCCCCallTo(CLI, InVals);
   }
 }
-
-
 
 /// LowerCCCArguments - transform physical registers into virtual registers and
 /// generate load operations for arguments places on the stack.
@@ -451,9 +441,6 @@ PatmosTargetLowering::LowerCCCArguments(SDValue Chain,
   return Chain;
 }
 
-
-
-
 SDValue
 PatmosTargetLowering::LowerReturn(SDValue Chain,
                                   CallingConv::ID CallConv, bool isVarArg,
@@ -497,9 +484,6 @@ PatmosTargetLowering::LowerReturn(SDValue Chain,
   // Return
   return DAG.getNode(Opc, dl, MVT::Other, RetOps);
 }
-
-
-
 
 /// LowerCCCCallTo - functions arguments are copied from virtual regs to
 /// (physical regs)/(stack frame), CALLSEQ_START and CALLSEQ_END are emitted.
@@ -639,10 +623,6 @@ PatmosTargetLowering::LowerCCCCallTo(CallLoweringInfo &CLI,
                          DAG, InVals);
 }
 
-
-
-
-
 /// LowerCallResult - Lower the result values of a call into the
 /// appropriate copies out of appropriate physical registers.
 ///
@@ -665,10 +645,16 @@ PatmosTargetLowering::LowerCallResult(SDValue Chain, SDValue InFlag,
             RVLocs[i].getLocReg() == Patmos::R2) && "Invalid return register");
     // We only support i32 return registers, so we copy from i32, no matter what
     // the actual return type in RVLocs[i].getValVT() is.
-    Chain = DAG.getCopyFromReg(Chain, dl, RVLocs[i].getLocReg(),
-                               MVT::i32, InFlag).getValue(1);
-    InFlag = Chain.getValue(2);
-    InVals.push_back(Chain.getValue(0));
+    SDValue val = DAG.getCopyFromReg( Chain, dl, RVLocs[i].getLocReg(), MVT::i32, InFlag);
+    Chain = val.getValue(1);
+    InFlag = val.getValue(2);
+
+    if(RVLocs[i].getValVT() == MVT::i1) {
+      // Returned i1's are returned in R1 and therefore need to be "extracted"
+      // by truncating it down to i1 again
+      val = DAG.getZExtOrTrunc(val, dl, RVLocs[i].getValVT());
+    }
+    InVals.push_back(val);
   }
 
   return Chain;
@@ -740,7 +726,6 @@ PatmosTargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
                       Op.getOperand(1), // destination address
                       MachinePointerInfo(SV));
 }
-
 
 const char *PatmosTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {

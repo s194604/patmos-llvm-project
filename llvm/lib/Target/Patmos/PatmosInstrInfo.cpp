@@ -77,31 +77,26 @@ void PatmosInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   bool KillSrc) const {
   unsigned Opc;
   if (Patmos::RRegsRegClass.contains(DestReg, SrcReg)) {
-    // General purpose register
     Opc = Patmos::MOV;
-    AddDefaultPred(BuildMI(MBB, I, DL, get(Opc), DestReg))
-      .addReg(SrcReg, getKillRegState(KillSrc));
-
+  } else if (Patmos::RRegsRegClass.contains(DestReg)
+      && Patmos::PRegsRegClass.contains(SrcReg)) {
+    Opc = Patmos::MOVpr;
+  } else if (Patmos::PRegsRegClass.contains(DestReg)
+      && Patmos::RRegsRegClass.contains(SrcReg)) {
+    Opc = Patmos::MOVrp;
   } else if (Patmos::PRegsRegClass.contains(DestReg, SrcReg)) {
-    // Predicate register
     Opc = Patmos::PMOV;
-    AddDefaultPred(BuildMI(MBB, I, DL, get(Opc), DestReg))
-      .addReg(SrcReg, getKillRegState(KillSrc)).addImm(0);
-
   } else if (Patmos::SRegsRegClass.contains(DestReg)) {
     assert(Patmos::RRegsRegClass.contains(SrcReg));
-    AddDefaultPred(BuildMI(MBB, I, DL, get(Patmos::MTS), DestReg))
-      .addReg(SrcReg, getKillRegState(KillSrc));
-
+    Opc = Patmos::MTS;
   } else if (Patmos::SRegsRegClass.contains(SrcReg)) {
     assert(Patmos::RRegsRegClass.contains(DestReg));
-    AddDefaultPred(BuildMI(MBB, I, DL, get(Patmos::MFS), DestReg))
-      .addReg(SrcReg, getKillRegState(KillSrc));
-
-  } else {
+    Opc = Patmos::MFS;
+  }  else {
     llvm_unreachable("Impossible reg-to-reg copy");
   }
-
+  auto &instr = AddDefaultPred(BuildMI(MBB, I, DL, get(Opc), DestReg))
+        .addReg(SrcReg, getKillRegState(KillSrc));
 }
 
 void PatmosInstrInfo::
