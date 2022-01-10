@@ -34,6 +34,7 @@ add_llvm_target(PatmosCodeGen
   PatmosPostRAScheduler.cpp
   PatmosSchedStrategy.cpp
   PatmosEnsureAlignment.cpp
+  PatmosIntrinsicElimination.cpp
   MachineModulePass.cpp
   
   LINK_COMPONENTS

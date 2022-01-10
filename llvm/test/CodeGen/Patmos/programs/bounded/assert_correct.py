@@ -11,8 +11,9 @@ if which("pasim") is None:
     print("Patmos simulator 'pasim' could not be found.")
     sys.exit(1)
 
-if len(sys.argv) <= 6:
-    print("Must have at least 2 execution arguments but was:", sys.argv[6:])
+first_exec_arg_index = 6
+if len(sys.argv) <= (first_exec_arg_index + 1):
+    print("Must have at least 2 execution arguments but was:", sys.argv[first_exec_arg_index:])
     sys.exit(1)
    
 # Parse arguments
@@ -21,16 +22,22 @@ if len(sys.argv) <= 6:
 bin_dir = os.path.dirname(sys.argv[1])
 
 # The source file to test
-bitcode = sys.argv[2]
-   
+source_to_test = sys.argv[2]
+
+# Substitute source file
+substitute_source = sys.argv[3]
+
+if substitute_source != "":
+    source_to_test = substitute_source
+    
 # The object file of the program
-compiled = sys.argv[3]
+compiled = sys.argv[4]   
 
 # The object file of the start function to be linked with the program
-start_function = sys.argv[4]
+start_function = sys.argv[5]
 
 # The first execution argument
-exec_arg = sys.argv[5]
+exec_arg = sys.argv[first_exec_arg_index]
 
 # It cleans the given pasim statistics
 # leaving only the stats needed to ensure two run of a singlepath
@@ -114,6 +121,8 @@ def execute_and_stat(program, args):
         sys.stderr.write(str(pasim_result.returncode) + "\n")
         sys.stderr.write("--------------------- stdout ---------------------\n")
         sys.stderr.write(program_output + "\n")
+        sys.stderr.write("--------------------- stderr ---------------------\n")
+        sys.stderr.write(pasim_stats + "\n")
         sys.stderr.write("--------------------------------------------------\n")
         return True, ""
     
@@ -139,16 +148,16 @@ def compile_and_test(llc_args):
     using_singlepath = "-mpatmos-singlepath=" in llc_args
         
     # Try to compile the program to rule out compile errors. Throw out the result.
-    if subprocess.run([bin_dir+"/llc", bitcode] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
-        throw_error("Failed to compile ", bitcode)
+    if subprocess.run([bin_dir+"/llc", source_to_test] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
+        throw_error("Failed to compile ", source_to_test)
 
     # Link start function with program
-    if subprocess.run([bin_dir+"/llvm-link", start_function, bitcode, "-o", compiled]).returncode != 0:
-        throw_error("Failed to link '", bitcode, "' and '", start_function, "'")
+    if subprocess.run([bin_dir+"/llvm-link", start_function, source_to_test, "-o", compiled]).returncode != 0:
+        throw_error("Failed to link '", source_to_test, "' and '", start_function, "'")
         
     # Compile into object file (not ELF yet)
     if subprocess.run([bin_dir+"/llc", compiled] + llc_args.split() + ["-filetype=obj", "-o", compiled]).returncode != 0:
-        throw_error("Failed to compile '", bitcode, "'")
+        throw_error("Failed to compile '", source_to_test, "'")
 
      
     # Run the first execution argument on its own,
@@ -163,7 +172,7 @@ def compile_and_test(llc_args):
     # For each one, compare to the first. If they all
     # are equal to the first, they must also be equal to each other,
     # so we don't need to compare them to each other.
-    for i in sys.argv[6:]:
+    for i in sys.argv[first_exec_arg_index:]:
             
         rest_failed, rest_stats=execute_and_stat(compiled, i)
         if rest_failed:

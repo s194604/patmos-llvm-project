@@ -72,20 +72,32 @@ bool PatmosSinglePathInfo::isConverting(const MachineFunction &MF) {
   return PMFI->isSinglePath();
 }
 
+bool PatmosSinglePathInfo::isEnabled(const Function &F) {
+  return isRoot(F) || isReachable(F) || isMaybe(F);
+}
 bool PatmosSinglePathInfo::isEnabled(const MachineFunction &MF) {
-  return isRoot(MF) || isReachable(MF) || isMaybe(MF);
+  return PatmosSinglePathInfo::isEnabled(MF.getFunction());
 }
 
+bool PatmosSinglePathInfo::isRoot(const Function &F) {
+  return F.hasFnAttribute("sp-root");
+}
 bool PatmosSinglePathInfo::isRoot(const MachineFunction &MF) {
-  return MF.getFunction().hasFnAttribute("sp-root");
+  return PatmosSinglePathInfo::isRoot(MF.getFunction());
 }
 
+bool PatmosSinglePathInfo::isReachable(const Function &F) {
+  return F.hasFnAttribute("sp-reachable");
+}
 bool PatmosSinglePathInfo::isReachable(const MachineFunction &MF) {
-  return MF.getFunction().hasFnAttribute("sp-reachable");
+  return PatmosSinglePathInfo::isReachable(MF.getFunction());
 }
 
+bool PatmosSinglePathInfo::isMaybe(const Function &F) {
+  return F.hasFnAttribute("sp-maybe");
+}
 bool PatmosSinglePathInfo::isMaybe(const MachineFunction &MF) {
-  return MF.getFunction().hasFnAttribute("sp-maybe");
+  return PatmosSinglePathInfo::isMaybe(MF.getFunction());
 }
 
 void PatmosSinglePathInfo::getRootNames(std::set<StringRef> &S) {

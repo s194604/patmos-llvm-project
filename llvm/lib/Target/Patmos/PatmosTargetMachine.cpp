@@ -117,9 +117,12 @@ namespace {
         // switch/jumptables -> lower them to ITEs
         addPass(createLowerSwitchPass());
         addPass(createPatmosSPClonePass());
-        return true;
       }
-      return false;
+      // This pass must be after SPClone to ensure we know which functions are
+      // singlepath, so that we can report errors when needed
+      addPass(createPatmosIntrinsicEliminationPass());
+
+      return PatmosSinglePathInfo::isEnabled();
     }
 
     /// addPreRegAlloc - This method may be implemented by targets that want to

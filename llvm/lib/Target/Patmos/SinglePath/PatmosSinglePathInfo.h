@@ -64,14 +64,18 @@ namespace llvm {
 
       /// isEnabled - Return true if a particular function is specified to
       /// to be converted to single-path code.
+      static bool isEnabled(const Function &F);
       static bool isEnabled(const MachineFunction &MF);
 
       static bool isConverting(const MachineFunction &MF);
 
+      static bool isRoot(const Function &F);
       static bool isRoot(const MachineFunction &MF);
 
+      static bool isReachable(const Function &F);
       static bool isReachable(const MachineFunction &MF);
 
+      static bool isMaybe(const Function &F);
       static bool isMaybe(const MachineFunction &MF);
 
       /// getRootNames - Fill a set with the names of
