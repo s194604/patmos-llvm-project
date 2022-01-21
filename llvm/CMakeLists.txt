@@ -1128,3 +1128,5 @@ endif()
 if (LLVM_INCLUDE_UTILS AND LLVM_INCLUDE_TOOLS)
   add_subdirectory(utils/llvm-locstats)
 endif()
+
+include(cmake/platforms/Patmos.cmake)

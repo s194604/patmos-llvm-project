@@ -19,6 +19,7 @@ Tools:
 - `git` v2.17.1
 - `cmake` v3.21.0
 - `make` v4.1
+- GNU tar v1.29 (must be available on the path as `tar`)
 - Patmos Simulator Tools v1.0.2
 
 ### Branches
@@ -89,11 +90,26 @@ To test Clang:
 make -j ClangPatmosTestDeps && ./bin/llvm-lit ../clang/test -v --filter=Patmos
 ```
 
-To test Compiler-RT, go to the`build-compiler-rt` folder:
+To test Compiler-RT, go to the `build-compiler-rt` folder:
 
 ```
 ./bin/llvm-lit -v test/builtins/Unit/patmos
 ```
+
+### Packaging
+
+To create a tarball containing the built compiler and standard library, use the following command from the `build` folder:
+
+```
+make PatmosPackage
+```
+
+To do this, you must have built LLVM, Compiler-RT, and `newlib` using the previous steps.
+The tarball is then available under `build/patmos-unknown-unknown-elf/package-temp/patmos-llvm-*.tar.gz`, where `*` depends on the platform you are building on.
+Using this tarball, you can install the compiler as described in the installation section.
+
+_Note: The steps for building LLVM are meant for development and as such produce a debug-mode compiler (which is extremely slow). 
+To package a release compiler, use the flag `-DCMAKE_BUILD_TYPE=Release`_
 
 ### <a name="anch-updating-llvm"></a>Updating LLVM
 

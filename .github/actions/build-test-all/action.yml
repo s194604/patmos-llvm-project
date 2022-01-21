@@ -25,8 +25,8 @@ inputs:
     description: 'Which folder under build-compiler-rt/test/builtins/Unit/ to test'
     required: true
     default: 'patmos'
-  newlib-enable:
-    description: 'Whether Newlib should compiled.'
+  enable-package:
+    description: 'Whether packaging and benchmark testing should be done.'
     required: true
     default: true
         
@@ -39,6 +39,7 @@ runs:
         mkdir -p $BUILD_PATH
         mkdir -p $COMPILER_RT_BUILD_PATH
         mkdir -p $NEWLIB_BUILD_PATH
+        mkdir -p $BENCH_BUILD_PATH
     - run: echo "::group::Configure LLVM Build"
       shell: bash
     - working-directory: ${{env.BUILD_PATH}}
@@ -54,7 +55,7 @@ runs:
           -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_PATH \
           -DLLVM_TARGETS_TO_BUILD=$TARGETS \
           -DLLVM_DEFAULT_TARGET_TRIPLE=$DEFAULT_TARGET \
-          -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" \
+          -DLLVM_ENABLE_PROJECTS="clang" \
           -DCLANG_ENABLE_ARCMT=false \
           -DCLANG_ENABLE_STATIC_ANALYZER=false \
           -DCLANG_BUILD_EXAMPLES=false \
@@ -137,7 +138,7 @@ runs:
         working-dir: ${{env.COMPILER_RT_BUILD_PATH}}
         exclude: ${{inputs.exclude-reg}}
     - name: Download Newlib
-      if: inputs.newlib-enable == 'true'
+      if: inputs.enable-package == 'true'
       env:
         NEWLIB_COMMIT: 1304d2463ae91470d898c92216729175325afde1
       shell: bash
@@ -148,7 +149,7 @@ runs:
     # Builds newlib to Patmos assembly (instead of bitcode)
     # to ensure that it compiles successfully
     - name: Test-Build Newlib
-      if: inputs.newlib-enable == 'true'
+      if: inputs.enable-package == 'true'
       working-directory: ${{env.NEWLIB_BUILD_PATH}}
       shell: bash
       run: |
@@ -157,9 +158,40 @@ runs:
         rm -rf *
     # Build newlib properly to LLVM-IR
     - name: Build Newlib
-      if: inputs.newlib-enable == 'true'
+      if: inputs.enable-package == 'true'
       working-directory: ${{env.NEWLIB_BUILD_PATH}}
       shell: bash
       run: |
         $GITHUB_WORKSPACE/$NEWLIB_PATH/configure --target=patmos-unknown-unknown-elf AR_FOR_TARGET=ar CC_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" CFLAGS_FOR_TARGET="-target patmos-unknown-unknown-elf -O2 -emit-llvm -D__GLIBC_USE\(...\)=0" RANLIB_FOR_TARGET=ranlib LD_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang"
         make $J
+    # Package Compiler
+    - name: Build Package
+      working-directory: ${{env.BUILD_PATH}}
+      if: inputs.enable-package == 'true'
+      shell: bash
+      run: make $J PatmosPackage
+    # Install Package
+    - name: Download Benchmark test suite
+      working-directory: ${{env.BUILD_PATH}}
+      if: inputs.enable-package == 'true'
+      shell: bash
+      run: tar -xvf $(find . -name 'patmos-llvm-*.tar.gz') -C $GITHUB_WORKSPACE/$INSTALL_PATH
+    # Download Benchmark
+    - name: Download Benchmark test suite
+      if: inputs.enable-package == 'true'
+      env:
+        BENCH_COMMIT: 197791f2583906b76f2cd6b2abe66fed3ddc318b
+      shell: bash
+      run: |
+        git clone https://github.com/emoun/patmos-benchmarks ${{env.BENCH_PATH}}
+        cd ${{env.BENCH_PATH}}
+        git checkout $BENCH_COMMIT
+    # Build & Tests Benchmarks
+    - name: Build & Test Benchmarks
+      if: inputs.enable-package == 'true'
+      working-directory: ${{env.BENCH_BUILD_PATH}}
+      shell: bash
+      run: |
+        cmake $GITHUB_WORKSPACE/$BENCH_PATH -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/$BENCH_PATH/cmake/patmos-clang-toolchain.cmake -DENABLE_TESTING=true
+        make $J
+        ctest $J
