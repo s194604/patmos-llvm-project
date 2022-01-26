@@ -459,8 +459,6 @@ void PatmosSPReduce::doReduceFunction(MachineFunction &MF) {
   // Fixup kill flag of condition predicate registers
   fixupKillFlagOfCondRegs();
 
-  //LLVM_DEBUG(MF.viewCFGOnly());
-
   // we create an instance of the eliminator here, such that we can
   // insert dummy instructions for analysis and mark them as 'to be removed'
   // with the eliminator
@@ -938,8 +936,6 @@ void PatmosSPReduce::applyPredicates(SPScope *S, MachineFunction &MF) {
     // apply predicate to all instructions in block
     for( auto MI = MBB->instr_begin(), ME = MBB->getFirstInstrTerminator();
                                      MI != ME; ++MI) {
-//      assert(!MI->isBundled() &&
-//             "PatmosInstrInfo::PredicateInstruction() can't handle bundles");
 
       if (MI->isReturn()) {
           DEBUG_TRACE( dbgs() << "    skip return: " << *MI );
@@ -961,6 +957,7 @@ void PatmosSPReduce::applyPredicates(SPScope *S, MachineFunction &MF) {
       assert(instrPreds.count(&(*MI)));
       auto instrPred = instrPreds[&(*MI)];
       auto predReg = predRegs.count(instrPred) ? predRegs[instrPred] : Patmos::P0;
+      DEBUG_TRACE( dbgs() << "Predicate (" << instrPred << ") set to register: (" << predReg << ")\n");
       if (MI->isCall()) {
           DEBUG_TRACE( dbgs() << "    call: " << *MI );
           assert(!TII->isPredicated(*MI) && "call predicated");
@@ -987,7 +984,7 @@ void PatmosSPReduce::applyPredicates(SPScope *S, MachineFunction &MF) {
 
       if (MI->isPredicable(MachineInstr::QueryType::IgnoreBundle) && predReg != Patmos::P0) {
         auto isPredicated = [&](auto instr){
-        int i = instr->findFirstPredOperandIdx();
+          int i = instr->findFirstPredOperandIdx();
           if (i != -1) {
             unsigned preg = instr->getOperand(i).getReg();
             int      flag = instr->getOperand(++i).getImm();

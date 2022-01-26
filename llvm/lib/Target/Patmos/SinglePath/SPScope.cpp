@@ -515,7 +515,7 @@ public:
   void computePredInfos(const PatmosInstrInfo* instrInfo) {
 
     auto fcfg = buildfcfg();
-    //toposort(fcfg);
+
     fcfg.postdominators();
     DEBUG_TRACE(dumpfcfg(fcfg)); // uses info about pdom
     CD_map_t CD = ctrldep(fcfg);
@@ -742,6 +742,7 @@ const std::set<const PredicatedBlock *> SPScope::getSucceedingBlocks() const {
 void SPScope::walk(SPScopeWalker &walker) {
   walker.enterSubscope(this);
   auto blocks = getBlocksTopoOrd();
+
   for(auto block: blocks){
     auto MBB = block->getMBB();
     if (isSubheader(block)) {

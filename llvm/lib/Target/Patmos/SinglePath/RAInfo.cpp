@@ -143,11 +143,14 @@ class Location {
     friend bool operator<(const Location &, const Location &);
     friend llvm::raw_ostream &operator<<(llvm::raw_ostream&, const Location &);
 
+    Location(): type(RAInfo::LocType::Register), loc(0){}
     Location(const Location &o): type(o.type), loc(o.loc){}
     Location(RAInfo::LocType type, unsigned loc): type(type), loc(loc){}
 
-    const RAInfo::LocType &getType() const { return type;}
-    const unsigned &getLoc() const { return loc;}
+    RAInfo::LocType getType() const { return type;}
+    unsigned getLoc() const { return loc;}
+    bool isRegister() const { return type == RAInfo::LocType::Register;}
+    bool isStack() const { return type == RAInfo::LocType::Stack;}
 
   private:
     RAInfo::LocType type;
@@ -360,8 +363,9 @@ public:
             DefLocs.find(pred)->second = l;
           }
           assert(curLocs.find(pred)->second.getLoc() == DefLocs.at(pred).getLoc());
-          LLVM_DEBUG( dbgs() << "def " << pred << " in loc "
-                        << DefLocs.at(pred).getLoc() << ", ");
+          LLVM_DEBUG(
+              dbgs() << "def " << pred << " in " << DefLocs.at(pred) << ", "
+          );
         }
       }
       LLVM_DEBUG(dbgs() << "\n");
@@ -392,6 +396,7 @@ public:
   /// Converts a register index into a global index that takes parent
   /// into account.
   unsigned unifyRegister(unsigned idx){
+    LLVM_DEBUG(dbgs() << "Unifying register: (" << idx << ") with (" << FirstUsableReg << ")\n");
     // We don't have to check whether the result is larger that the number
     // of available registers, because we know the parent will spill
     // if that is the case.
@@ -438,13 +443,20 @@ public:
   {
     map<unsigned, Location>::iterator findCurUseLoc = curLocs.find(usePred);
     assert(findCurUseLoc != curLocs.end());
+
     // each use must be preceded by a location assignment
     Location& curUseLoc = findCurUseLoc->second;
+
     // if previous location was not a register, we have to allocate
     // a register and/or possibly spill
-    if (curUseLoc.getType() != Register) {
-      return handleIfNotInRegister(blockIndex, FreeLocs, curLocs,
-          findCurUseLoc);
+    if (curUseLoc.isStack()) {
+      auto useloc_newloc = handleIfNotInRegister(
+          blockIndex, FreeLocs, curLocs, curUseLoc.getLoc());
+      LLVM_DEBUG(
+        dbgs() << "Moving current location of predicate " << usePred <<" to " << useloc_newloc.second << "\n"
+      );
+      curUseLoc = useloc_newloc.second;
+      return useloc_newloc.first;
     } else {
       // everything stays as is
       return UseLoc(curUseLoc.getLoc());
@@ -472,20 +484,28 @@ public:
   }
 
   void handlePredUse(unsigned i, PredicatedBlock* block,
-      map<unsigned, Location>& curLocs, set<Location>& FreeLocs) {
-
+      map<unsigned, Location>& curLocs, set<Location>& FreeLocs)
+  {
     for(auto usePred: block->getBlockPredicates()){
+      LLVM_DEBUG(dbgs() << "Allocating predicate " << usePred << "\n");
+
       // for the top-level entry of a single-path root,
       // we don't need to assign a location, as we will use p0
       if (!(usePred == getHeaderPred() && Pub.Scope->isRootTopLevel())) {
         assert(block == Pub.Scope->getHeader() || i > 0);
+        assert(UseLocs[block->getMBB()].count(usePred) == 0
+            && "Block was already assigned a use predicate");
 
-        UseLocs[block->getMBB()].insert(std::make_pair(usePred,
-          (Pub.Scope->isHeader(block)) ?
-            calculateHeaderUseLoc(FreeLocs, curLocs)
-            : calculateNotHeaderUseLoc(i, usePred, curLocs, FreeLocs)
-        ));
+        auto useLoc = (Pub.Scope->isHeader(block)) ?
+              calculateHeaderUseLoc(FreeLocs, curLocs)
+            : calculateNotHeaderUseLoc(i, usePred, curLocs, FreeLocs);
 
+        assert(!UseLocs[block->getMBB()].count(usePred) && "Predicate shouldn't have any use locations set");
+        UseLocs[block->getMBB()].insert(std::make_pair(usePred, useLoc));
+      } else {
+        LLVM_DEBUG(
+          dbgs() << "MBB#" << block->getMBB()->getNumber() << " uses P0\n"
+        );
       }
     }
 
@@ -509,57 +529,61 @@ public:
     }
   }
 
-  UseLoc handleIfNotInRegister(unsigned blockIndex, set<Location>& FreeLocs,
-      map<unsigned, Location>& curLocs,
-      map<unsigned, Location>::iterator& findCurUseLoc)
+  std::pair<UseLoc, Location> handleIfNotInRegister(unsigned blockIndex, set<Location>& FreeLocs,
+      map<unsigned, Location>& curLocs, unsigned stackLoc)
   {
-
-    assert(findCurUseLoc != curLocs.end());
-    Location& curUseLoc = findCurUseLoc->second;
-
     if (hasFreeRegister(FreeLocs)) {
       Location newLoc = getAvailLoc(FreeLocs);
       UseLoc UL(newLoc.getLoc());
-      UL.load = std::make_pair(true, curUseLoc.getLoc());
-      curUseLoc = newLoc;
+      UL.load = std::make_pair(true, stackLoc);
       assert(UL.loc <= MaxRegs);
-      return UL;
+      return std::make_pair(UL, newLoc);
     } else {
-
       // spill and reassign
       // order predicates wrt furthest next use
       vector<unsigned> order;
       for(auto pair: LRs){
         auto pred = pair.first;
         map<unsigned, Location>::iterator cj = curLocs.find(pred);
-        if (cj != curLocs.end() && cj->second.getType() == Register) {
+        if (cj != curLocs.end() && cj->second.isRegister()) {
           order.push_back(pred);
         }
       }
       sortFurthestNextUse(blockIndex, order);
       unsigned furthestPred = order.back();
 
-      Location stackLoc = getAvailLoc(FreeLocs); // guaranteed to be a stack location, since there are no physicals free
+      Location newStackLoc = getAvailLoc(FreeLocs); // guaranteed to be a stack location, since there are no physicals free
+      assert(newStackLoc.isStack());
 
-      assert(stackLoc.getType() == Stack);
-      map<unsigned, Location>::iterator findFurthest = curLocs.find(
-          furthestPred);
+      map<unsigned, Location>::iterator findFurthest =
+          curLocs.find(furthestPred);
       assert(findFurthest != curLocs.end());
 
       UseLoc UL(findFurthest->second.getLoc());
-      UL.load = std::make_pair(true, curUseLoc.getLoc());
+      UL.load = std::make_pair(true, stackLoc);
 
       // differentiate between already used and not yet used
       if (LRs.at(furthestPred).anyUseBefore(blockIndex)) {
-        UL.spill = std::make_pair(true, stackLoc.getLoc());
+        UL.spill = std::make_pair(true, newStackLoc.getLoc());
+
+        LLVM_DEBUG( dbgs() << "Spilling predicate " << furthestPred << " to " << newStackLoc << "\n" );
       } else {
         // if it has not been used, we change the initial
         // definition location
-        DefLocs.insert(std::make_pair(furthestPred, stackLoc));
+        assert(DefLocs.count(furthestPred) && "Predicate should already have a definition");
+        DefLocs[furthestPred] = newStackLoc;
+
+        LLVM_DEBUG( dbgs() << "Moving initial definition of predicate " << furthestPred <<
+            " to " << newStackLoc << "\n" );
       }
-      curUseLoc = findFurthest->second;
-      findFurthest->second = stackLoc;
-      return UL;
+
+      auto replacement = findFurthest->second;
+      assert(replacement.isRegister() && "Should use a register location");
+
+      // Move the current location of the spilled register to stack
+      findFurthest->second = newStackLoc;
+
+      return std::make_pair(UL, replacement);
     }
   }
 
