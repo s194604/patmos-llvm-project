@@ -1,4 +1,4 @@
-name: Patmos Tests
+name: Patmos CI
 
 on:
   push: 
@@ -7,6 +7,9 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+-**'
   pull_request:
+  schedule:
+    # Run every monday at 1:00 AM
+    - cron: '00 1 * * MON'
 
 env:
   CARGO_TERM_COLOR: always
@@ -67,8 +70,6 @@ jobs:
             simulator_link: https://github.com/t-crest/patmos-simulator/releases/download/1.0.2/patmos-simulator-x86_64-apple-darwin17.7.0.tar.gz
           
     env:
-      RELEASE_TAR: patmos-llvm*.tar.gz
-      PATMOS_TRIPLE: patmos-unknown-unknown-elf
       GOLD_TAR: patmos-gold.tar.gz
       SIMULAROT_TAR: patmos-simulator.tar.gz
       CC: ${{matrix.cc}}
@@ -100,3 +101,46 @@ jobs:
         uses: ./.github/actions/build-test-all
         with:
           enable-assertions: true
+  release:
+    name: Release (${{matrix.platform}})
+    runs-on: ${{matrix.platform}}
+    permissions:
+      contents: write 
+    strategy:
+      fail-fast: true
+      matrix:
+        include: 
+          - platform: ubuntu-18.04
+            cc: gcc-9
+            cxx: g++-9
+          - platform: macOS-10.15
+            cc: clang
+            cxx: clang++
+    # Run after the test jobs finish      
+    needs: [test-patmos, test-non-patmos]
+    # Run only if this was triggered by a tag
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    env:
+      RELEASE_TAR: patmos-llvm*.tar.gz
+      PATMOS_TRIPLE: patmos-unknown-unknown-elf
+      CC: ${{matrix.cc}}
+      CXX: ${{matrix.cxx}}
+    
+    steps:
+      - if: startsWith(matrix.platform, 'macOs')
+        name: Install GNU-tar as 'tar'
+        run: |
+          brew install gnu-tar
+          # Set gtar to be available as 'tar'
+          echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> $GITHUB_PATH
+      - uses: actions/checkout@v2
+      - name: Build LLVM, Compiler-RT, Newlib, and Package
+        uses: ./.github/actions/build-test-all
+        with:
+          enable-assertions: false
+          enable-tests: false
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.BUILD_PATH}}/patmos-unknown-unknown-elf/package-temp/patmos-llvm-*.tar.gz
+      

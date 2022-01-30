@@ -3,6 +3,21 @@ Patmos LLVM
 
 This is a fork of the LLVM Project that adds a target for the Patmos Architecture.
 
+# Installation
+
+Prebuilt releases are [published on Github](https://github.com/t-crest/patmos-llvm-project/releases) as `.tar.gz` files.
+To install, download the tarball that fits your platform into you desired installation folder (usually `t-crest/local`.
+Then open a terminal in that folder and run the following command (where `<tarfile>` is the release tar file you downloaded):
+
+```
+tar -xvf <tarfile>
+```
+
+This will correctly install all artifacts into the right paths. You are now ready to use the compiler.
+Remember to set your `PATH` to point to `t-crest/local/bin`.
+
+Also remember that you need [the Patmos Gold Linker](https://github.com/t-crest/patmos-gold) to be installed alongside the compiler.
+
 # Development
 
 ### Requirements
@@ -110,6 +125,11 @@ Using this tarball, you can install the compiler as described in the installatio
 
 _Note: The steps for building LLVM are meant for development and as such produce a debug-mode compiler (which is extremely slow). 
 To package a release compiler, use the flag `-DCMAKE_BUILD_TYPE=Release`_
+
+### Releasing New Versions
+
+To fully automatically publish a new version, simply tag the required commit using `x.y.z` version numbering (with an optional `-` followed by anything).
+Github Actions will then automatically test the commit, make packages for each platform, and publish them all.
 
 ### <a name="anch-updating-llvm"></a>Updating LLVM
 

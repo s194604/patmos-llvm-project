@@ -22,7 +22,11 @@ inputs:
     description: 'Additional args to pass to LLVM-lit.'
     required: false
     default: ''
-        
+  enable-tests:
+    description: 'Wether to run any tests'
+    required: true
+    default: true
+    
 runs:
   using: "composite"
   steps: 
@@ -31,7 +35,8 @@ runs:
       env:
         TARGETS: ${{ inputs.targets }}
       run: make $J $TARGETS
-    - working-directory: ${{ inputs.working-dir }}
+    - if:  inputs.enable-tests == 'true'
+      working-directory: ${{ inputs.working-dir }}
       shell: bash
       env:
         EXCLUDE: ${{ inputs.exclude }}
