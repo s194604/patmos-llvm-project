@@ -16,7 +16,6 @@ tar -xvf <tarfile>
 This will correctly install all artifacts into the right paths. You are now ready to use the compiler.
 Remember to set your `PATH` to point to `t-crest/local/bin`.
 
-Also remember that you need [the Patmos Gold Linker](https://github.com/t-crest/patmos-gold) to be installed alongside the compiler.
 
 # Development
 
@@ -50,7 +49,7 @@ The following commands with clone only the parts of the Patmos LLVM repository t
 ```
 git clone --filter=blob:none --sparse git@github.com:t-crest/patmos-llvm-project
 cd patmos-llvm-project
-git sparse-checkout add /.github /llvm /clang /compiler-rt
+git sparse-checkout add /.github /llvm /clang /compiler-rt /lld /libunwind
 ```
 
 ### Build
@@ -64,7 +63,7 @@ In this folder, you must setup the build with `cmake` (referencing the LLVM subf
 ```
 mkdir -p build
 cd build
-cmake ../llvm -DCMAKE_BUILD_TYPE=Debug -DLLVM_TARGETS_TO_BUILD="Patmos" -DLLVM_DEFAULT_TARGET_TRIPLE=patmos-unknown-unknown-elf -DLLVM_ENABLE_PROJECTS="clang" -DCLANG_ENABLE_ARCMT=false -DCLANG_ENABLE_STATIC_ANALYZER=false -DCLANG_BUILD_EXAMPLES=false -DLLVM_ENABLE_BINDINGS=false -DLLVM_INSTALL_BINUTILS_SYMLINKS=false -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false -DLLVM_INCLUDE_EXAMPLES=false -DLLVM_INCLUDE_BENCHMARKS=false -DLLVM_APPEND_VC_REV=false -DLLVM_ENABLE_WARNINGS=false -DLLVM_ENABLE_PEDANTIC=false -DLLVM_ENABLE_LIBPFM=false -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false -DLLVM_INSTALL_UTILS=false
+cmake ../llvm -DCMAKE_BUILD_TYPE=Debug -DLLVM_TARGETS_TO_BUILD="Patmos" -DLLVM_DEFAULT_TARGET_TRIPLE=patmos-unknown-unknown-elf -DLLVM_ENABLE_PROJECTS="clang;lld" -DCLANG_ENABLE_ARCMT=false -DCLANG_ENABLE_STATIC_ANALYZER=false -DCLANG_BUILD_EXAMPLES=false -DLLVM_ENABLE_BINDINGS=false -DLLVM_INSTALL_BINUTILS_SYMLINKS=false -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false -DLLVM_INCLUDE_EXAMPLES=false -DLLVM_INCLUDE_BENCHMARKS=false -DLLVM_APPEND_VC_REV=false -DLLVM_ENABLE_WARNINGS=false -DLLVM_ENABLE_PEDANTIC=false -DLLVM_ENABLE_LIBPFM=false -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false -DLLVM_INSTALL_UTILS=false
 make -j
 ```
 
@@ -103,6 +102,12 @@ To test Clang:
 
 ```
 make -j ClangPatmosTestDeps && ./bin/llvm-lit ../clang/test -v --filter=Patmos
+```
+
+To test LLD (from the `build` folder):
+
+```
+make -j lld && ./bin/llvm-lit ../lld/test -v --filter=Patmos
 ```
 
 To test Compiler-RT, go to the `build-compiler-rt` folder:

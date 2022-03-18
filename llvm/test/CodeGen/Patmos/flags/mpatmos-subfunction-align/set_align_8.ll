@@ -1,6 +1,6 @@
 ; RUN: llc < %s -mpatmos-subfunction-align=8 | FileCheck %s
 ; RUN: llc < %s -mpatmos-subfunction-align=8 -filetype=obj -o %t;\
-; RUN: patmos-ld %t -nostdlib -static -o %t --section-start .text=1;\
+; RUN: ld.lld %t --nostdlib --static -o %t --section-start .text=1;\
 ; RUN: llvm-objdump %t -d | FileCheck %s --check-prefix ALIGN
 ; RUN: LLC_ARGS="-mpatmos-subfunction-align=8"; %test_no_runtime_execution
 ; END.
@@ -12,7 +12,7 @@
 ;	1. We ensure that when outputting assembly, the function is preceded by the alignment. 
 ;	2. We check that when outputting object code the address of the first instuction
 ;		in the function is aligned correctly.
-;		We use patmos-ld to start the .text section at address 1, 
+;		We use ld.lld to start the .text section at address 1, 
 ;		which is never a valid alignment.
 ;		We then to the check using llvm-objdump and the "ALIGN" prefix for FileCheck.
 ;		We then check that the address after the main label ends in the correct values

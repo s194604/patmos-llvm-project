@@ -1,6 +1,6 @@
 ; RUN: llc < %s -mpatmos-subfunction-align=32 -mpatmos-max-subfunction-size=64| FileCheck %s
 ; RUN: llc < %s -mpatmos-subfunction-align=32 -mpatmos-max-subfunction-size=64 -filetype=obj -o %t;\
-; RUN: patmos-ld %t -nostdlib -static -o %t --section-start .text=1;\
+; RUN: ld.lld %t --nostdlib --static -o %t --section-start .text=1;\
 ; RUN: llvm-objdump %t -d| FileCheck %s --check-prefix ALIGN
 ; RUN: LLC_ARGS="-mpatmos-subfunction-align=32 -mpatmos-max-subfunction-size=64";\
 ; RUN: PASIM_ARGS="--mcsize=64"; %test_no_runtime_execution

@@ -7,7 +7,7 @@ set( PACKAGE_TEMP_DIR "${PATMOS_TRIPLE}/package-temp")
 set( PACKAGE_TAR "${PACKAGE_TEMP_DIR}/${PROJECT_NAME}-${TARGET_TRIPLE}.tar")
 set( PACKAGE_TAR_GZ "${PACKAGE_TAR}.gz")
 set( PACKAGE_INFO_FILE "${PACKAGE_TEMP_DIR}/${PROJECT_NAME}-info.yml")
-set( PACKAGE_TARGETS "llc" "llvm-link" "clang" "llvm-config" "llvm-objdump" "opt")
+set( PACKAGE_TARGETS "llc" "llvm-link" "clang" "llvm-config" "llvm-objdump" "opt" "lld")
 set( PACKAGE_ITEMS_LIBS
 	"${PACKAGE_TEMP_DIR}/${PATMOS_TRIPLE}/lib/crt0.o"
 	"${PACKAGE_TEMP_DIR}/${PATMOS_TRIPLE}/lib/crtbegin.o"
@@ -29,11 +29,12 @@ set( NEWLIB_INCLUDES # List of dirs from which to get only the files
 )
 set( PACKAGE_ITEMS
 	# Package binaries
-	"bin/llc" "bin/llvm-link" "bin/clang-12" "bin/llvm-config" "bin/llvm-objdump" "bin/opt"
+	"bin/llc" "bin/llvm-link" "bin/clang-12" "bin/llvm-config" "bin/llvm-objdump" "bin/opt" "bin/lld"
 	
 	# Moved binaries 
 	"${PACKAGE_TEMP_DIR}/bin/clang" # Actually a symlink
-	
+	"${PACKAGE_TEMP_DIR}/bin/ld.lld" # Actually a symlink
+
 	# Clang headers
 	"lib/clang" 
 	
@@ -73,8 +74,9 @@ add_custom_command(
 	COMMAND rsync "../patmos-newlib/newlib/libc/machine/patmos/include/*" "${PACKAGE_TEMP_DIR}/${PATMOS_TRIPLE}/include/"
 )
 
-ADD_CUSTOM_TARGET(symlink-clang
+ADD_CUSTOM_TARGET(symlink-clang-lld
 	COMMAND ${CMAKE_COMMAND} -E create_symlink patmos-clang-12 ${PACKAGE_TEMP_DIR}/bin/clang
+	COMMAND ${CMAKE_COMMAND} -E create_symlink patmos-lld ${PACKAGE_TEMP_DIR}/bin/ld.lld
 	DEPENDS clang PatmosPackageTempDirs		  
 	)		  
 # Build release tarball containing binaries and metadata
@@ -109,7 +111,7 @@ add_custom_command(
 	# Compress the tar
 	COMMAND gzip -9 < ${PACKAGE_TAR} > ${PACKAGE_TAR_GZ}
 	
-	DEPENDS ${PACKAGE_TARGETS} ${PACKAGE_ITEMS_LIBS} symlink-clang "${PACKAGE_TEMP_DIR}/${PATMOS_TRIPLE}/include/newlib.h"
+	DEPENDS ${PACKAGE_TARGETS} ${PACKAGE_ITEMS_LIBS} symlink-clang-lld "${PACKAGE_TEMP_DIR}/${PATMOS_TRIPLE}/include/newlib.h"
 )
 # Rename release tarball target to something better.
 add_custom_target(PatmosPackage DEPENDS ${PACKAGE_TAR_GZ})

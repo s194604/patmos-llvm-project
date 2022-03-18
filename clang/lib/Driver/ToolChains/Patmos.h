@@ -104,12 +104,12 @@ protected:
                     const char *InputFilename,
                     const llvm::opt::ArgList &TCArgs) const;
 
-  void ConstructGoldJob(const Tool &Creator, Compilation &C,
+  void ConstructLLDJob(const Tool &Creator, Compilation &C,
                         const JobAction &JA,
                         const InputInfo &Output,
                         const InputInfoList &Inputs,
                         const char *OutputFilename,
-                        const llvm::opt::ArgStringList &GoldInputs,
+                        const llvm::opt::ArgStringList &LLDInputs,
                         const llvm::opt::ArgList &TCArgs,
                         bool AddStackSymbols) const;
 };

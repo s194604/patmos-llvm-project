@@ -59,7 +59,7 @@ runs:
           -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_PATH \
           -DLLVM_TARGETS_TO_BUILD=$TARGETS \
           -DLLVM_DEFAULT_TARGET_TRIPLE=$DEFAULT_TARGET \
-          -DLLVM_ENABLE_PROJECTS="clang" \
+          -DLLVM_ENABLE_PROJECTS="clang;lld" \
           -DCLANG_ENABLE_ARCMT=false \
           -DCLANG_ENABLE_STATIC_ANALYZER=false \
           -DCLANG_BUILD_EXAMPLES=false \
@@ -75,11 +75,19 @@ runs:
           -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false \
           -DLLVM_INSTALL_UTILS=false \
           -DLLVM_ENABLE_ASSERTIONS=$ENABLE_ASSERTIONS
+    - name: LLD Tests
+      if: inputs.enable-tests == 'true'
+      uses: ./.github/actions/build-test
+      with:
+        targets: FileCheck count llc llvm-as llvm-bcanalyzer llvm-config llvm-cvtres llvm-dis llvm-dwarfdump llvm-lib llvm-lipo llvm-mc llvm-nm llvm-objdump llvm-pdbutil llvm-readelf llvm-strip llvm-symbolizer not obj2yaml opt split-file yaml2obj lld 
+        path: ${{env.LLD_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
+        include: ${{inputs.include-only}}
     - name: LLVM Unit Tests
       if: inputs.enable-tests == 'true'
       uses: ./.github/actions/build-test
       with:
-        targets: UnitTests FileCheck count not lli llvm-strip llvm-install-name-tool dsymutil lli-child-target llvm-as llvm-bcanalyzer llvm-config llvm-cov llvm-cxxdump llvm-cvtres llvm-diff llvm-dis llvm-dwarfdump llvm-exegesis llvm-extract llvm-isel-fuzzer llvm-ifs llvm-jitlink llvm-opt-fuzzer llvm-lib llvm-link llvm-lto llvm-lto2 llvm-mc llvm-mca llvm-modextract llvm-nm llvm-objdump llvm-pdbutil llvm-profdata llvm-ranlib llvm-rc llvm-readelf llvm-rtdyld llvm-size llvm-split llvm-strings llvm-undname llvm-c-test llvm-cxxfilt llvm-xray yaml2obj obj2yaml yaml-bench verify-uselistorder bugpoint llc llvm-symbolizer opt sancov sanstats llvm-addr2line
+        targets: UnitTests lli llvm-install-name-tool dsymutil lli-child-target llvm-cov llvm-cxxdump llvm-diff llvm-exegesis llvm-extract llvm-isel-fuzzer llvm-ifs llvm-jitlink llvm-opt-fuzzer llvm-link llvm-lto llvm-lto2 llvm-mca llvm-modextract llvm-profdata llvm-ranlib llvm-rc llvm-rtdyld llvm-size llvm-split llvm-strings llvm-undname llvm-c-test llvm-cxxfilt llvm-xray yaml-bench verify-uselistorder bugpoint sancov sanstats llvm-addr2line
         path: ${{env.LLVM_PATH}}/test
         working-dir: ${{env.BUILD_PATH}}
         include: LLVM-Unit.*(${{inputs.include-only}})

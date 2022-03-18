@@ -463,7 +463,7 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
       LLCExec, LLCArgs, Inputs, Output));
 }
 
-static std::string get_patmos_gold(const ToolChain &TC, DiagnosticsEngine &Diag)
+static std::string get_patmos_lld(const ToolChain &TC, DiagnosticsEngine &Diag)
 {
   char *gold_envvar = getenv("PATMOS_GOLD");
   if (gold_envvar && strcmp(gold_envvar,"")!=0 ) {
@@ -478,21 +478,13 @@ static std::string get_patmos_gold(const ToolChain &TC, DiagnosticsEngine &Diag)
     }
   }
 
-  auto tmp = TC.GetProgramPath("patmos-ld");
-  if (tmp != "patmos-ld") {
-    return tmp;
-  }else{
-    auto DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Error,
-                         "gold linker 'patmos-ld' not found");
-    Diag.Report(DiagID);
-    return "";
-  }
+  return(get_patmos_tool(TC, "ld.lld"));
 }
 
-void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
+void patmos::PatmosBaseTool::ConstructLLDJob(const Tool &Creator,
     Compilation &C, const JobAction &JA,
     const InputInfo &Output, const InputInfoList &Inputs,
-    const char *OutputFilename, const ArgStringList &GoldInputs,
+    const char *OutputFilename, const ArgStringList &LLDInputs,
     const ArgList &Args, bool AddStackSymbols) const
 {
   ArgStringList LDArgs;
@@ -505,6 +497,8 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
 
   LDArgs.push_back("-nostdlib");
   LDArgs.push_back("-static");
+  // String merging seems to also change data saved as floats or doubles. Disable it to avoid the unwanted changes.
+  LDArgs.push_back("-O0");
 
   LDArgs.push_back("--defsym");
   LDArgs.push_back("__heap_start=end");
@@ -541,9 +535,9 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
   //----------------------------------------------------------------------------
   // append all linker input arguments and construct the link command
 
-  LDArgs.append(GoldInputs.begin(), GoldInputs.end());
+  LDArgs.append(LLDInputs.begin(), LLDInputs.end());
 
-  const char *LDExec = Args.MakeArgString(get_patmos_gold(TC, C.getDriver().getDiags()));
+  const char *LDExec = Args.MakeArgString(get_patmos_lld(TC, C.getDriver().getDiags()));
   C.addCommand(std::make_unique<Command>(
       JA, Creator, ResponseFileSupport::AtFileCurCP(),
       LDExec, LDArgs, Inputs, Output));
@@ -648,10 +642,10 @@ void patmos::FinalLink::ConstructJob(Compilation &C, const JobAction &JA,
   ConstructLLCJob(*this, C, JA, Output, Inputs, llcOut,
                   link4Out, Args);
 
-  ArgStringList GoldInputs;
-  GoldInputs.push_back(llcOut);
-  ConstructGoldJob(*this, C, JA, Output, Inputs, Output.getFilename(),
-      GoldInputs, Args, true);
+  ArgStringList LLDInputs;
+  LLDInputs.push_back(llcOut);
+  ConstructLLDJob(*this, C, JA, Output, Inputs, Output.getFilename(),
+      LLDInputs, Args, true);
 
 }
 

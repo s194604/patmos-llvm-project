@@ -19,7 +19,7 @@ for easy test setup.
 
 Used to test files by compiling and running them, ensuring 0 is returned.
 
-This uses LLC and patmos-ld to compile the LLVM-IR test program without any 
+This uses LLC and ld.lld to compile the LLVM-IR test program without any 
 standard library or runtime code of any kind, producing a standalone ELF that 
 is then run on pasim.
 
