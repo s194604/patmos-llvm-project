@@ -415,7 +415,7 @@ PatmosTargetLowering::LowerCCCArguments(SDValue Chain,
       int FI = MFI.CreateFixedObject(ObjSize, VA.getLocMemOffset(), true);
 
       // XXX handle alignment of large arguments
-      if (ObjSize > 4 || MFI.getObjectAlignment(FI) > 4) {
+      if (ObjSize > 4 || MFI.getObjectAlign(FI) > 4) {
         errs() << "LowerFormalArguments Unhandled argument type: "
              << EVT(VA.getLocVT()).getEVTString()
              << "\n";

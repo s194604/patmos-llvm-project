@@ -159,7 +159,7 @@ void PatmosSPPrepare::doPrepareFunction(MachineFunction &MF) {
   // create for each nesting level but the innermost one a byte-sized
   // spill slot for S0 in use
   for(unsigned i=0; i<requiredPreds.size()-1; i++) {
-    int fi = MFI.CreateStackObject(1, 1, false);
+    int fi = MFI.CreateStackObject(1, Align(1), false);
     PMFI.addSinglePathFI(fi);
   }
 

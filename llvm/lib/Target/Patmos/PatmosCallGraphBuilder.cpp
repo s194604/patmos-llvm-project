@@ -181,7 +181,7 @@ namespace llvm {
       if (DATy->getNumElements() != cast<ArrayType>(SrcTy)->getNumElements())
         return 0;
     } else if (VectorType *DVTy = dyn_cast<VectorType>(DstTy)) {
-      if (DVTy->getNumElements() != cast<ArrayType>(SrcTy)->getNumElements())
+      if (cast<FixedVectorType>(DVTy)->getNumElements() != cast<ArrayType>(SrcTy)->getNumElements())
         return 0;
     }
 

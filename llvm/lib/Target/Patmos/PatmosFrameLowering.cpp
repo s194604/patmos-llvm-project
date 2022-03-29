@@ -162,7 +162,7 @@ unsigned PatmosFrameLowering::assignFrameObjects(MachineFunction &MF,
     if (MFI.isDeadObjectIndex(FI))
       continue;
 
-    unsigned FIalignment = MFI.getObjectAlignment(FI);
+    Align FIalignment = MFI.getObjectAlign(FI);
     int64_t FIsize = MFI.getObjectSize(FI);
 
     if (FIsize > INT_MAX) {
@@ -175,7 +175,7 @@ unsigned PatmosFrameLowering::assignFrameObjects(MachineFunction &MF,
     // assigned to stack cache or shadow stack?
     if (SCFIs[FI]) {
       // alignment
-      unsigned int next_SCOffset = align(SCOffset, FIalignment);
+      unsigned int next_SCOffset = align(SCOffset, FIalignment.value());
 
       // check if the FI still fits into the SC
       if (align(next_SCOffset + FIsize, getEffectiveStackCacheBlockSize()) <=
@@ -205,7 +205,7 @@ unsigned PatmosFrameLowering::assignFrameObjects(MachineFunction &MF,
       assert(!SCFIs[FI]);
 
       // alignment
-      SSOffset = align(SSOffset, FIalignment);
+      SSOffset = align(SSOffset, FIalignment.value());
 
       LLVM_DEBUG(dbgs() << "PatmosSC: FI: " << FI << " on SS: " << SSOffset
                    << "(" << MFI.getObjectOffset(FI) << ")\n");

@@ -2064,7 +2064,7 @@ namespace llvm {
                     unsigned orig_size, const TimeRecord &Time)
     {
       std::error_code err;
-      raw_fd_ostream f(Filename, err, sys::fs::F_Append);
+      raw_fd_ostream f(Filename, err, sys::fs::OF_Append);
 
       // write a single line per function
 

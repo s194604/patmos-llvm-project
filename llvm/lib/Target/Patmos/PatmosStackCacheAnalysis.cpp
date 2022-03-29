@@ -38,6 +38,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Path.h"
 
 #include <map>
 #include <set>
