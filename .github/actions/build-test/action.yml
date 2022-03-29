@@ -1,0 +1,60 @@
+name: 'Build then Run Test'
+description: 'Builds a set of Make targets then runs a test.'
+inputs:
+  targets:  
+    description: 'Which Make target to build before the test.'
+    required: true
+  path:
+    description: 'The path to the directory that needs to be tested relative to $GITHUB_WORKSPACE.'
+    required: true
+  working-dir:
+    description: 'The working path for the test.'
+    required: true
+  exclude:
+    description: 'Exclude tests that start with a given string. Each string must be encapsulated in parentheses and separated by pipes (|).'
+    required: true
+    default: ''
+  include:
+    description: 'Include tests, testing only the given. Should be a pipe-separated list.'
+    required: true
+    default: '.'
+  lit-args:
+    description: 'Additional args to pass to LLVM-lit.'
+    required: false
+    default: ''
+  enable-tests:
+    description: 'Wether to run any tests'
+    required: true
+    default: true
+    
+runs:
+  using: "composite"
+  steps: 
+    - working-directory: ${{ inputs.working-dir }}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: make $J $TARGETS
+    - if:  inputs.enable-tests == 'true'
+      working-directory: ${{ inputs.working-dir }}
+      shell: bash
+      env:
+        EXCLUDE: ${{ inputs.exclude }}
+        INCLUDE: ${{ inputs.include }}
+        TEST_PATH: ${{ inputs.path }}
+        LIT_ARGS: ${{ inputs.lit-args }}
+      run: |
+        if [ ! -z "$EXCLUDE" ]; then
+          # Split paranthesis to avoid the shell treating it as an executable
+          EXCLUDE_FILTER="^(?!("
+          EXCLUDE_FILTER="${EXCLUDE_FILTER}$EXCLUDE"
+          EXCLUDE_FILTER="${EXCLUDE_FILTER})).*"
+        fi
+        FILTER="$EXCLUDE_FILTER($INCLUDE)"
+        if [ ! -z "$FILTER" ]; then
+          echo "Filter: $FILTER"
+          PRE_FILTER="--filter"
+        fi
+        ./bin/llvm-lit -v $GITHUB_WORKSPACE/$TEST_PATH "$PRE_FILTER" "$FILTER" $LIT_ARGS
+    
+    

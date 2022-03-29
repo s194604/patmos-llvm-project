@@ -369,6 +369,7 @@ def TargetMips32 : TargetArch<["mips", "mipsel"]>;
 def TargetAnyMips : TargetArch<["mips", "mipsel", "mips64", "mips64el"]>;
 def TargetMSP430 : TargetArch<["msp430"]>;
 def TargetM68k : TargetArch<["m68k"]>;
+def TargetPatmos: TargetArch<["patmos"]>;
 def TargetRISCV : TargetArch<["riscv32", "riscv64"]>;
 def TargetX86 : TargetArch<["x86"]>;
 def TargetAnyX86 : TargetArch<["x86", "x86_64"]>;
@@ -1534,6 +1535,29 @@ def LifetimeBound : DeclOrTypeAttr {
   let SimpleHandler = 1;
 }
 
+def LoopBound: Attr {
+  // #pragma loopbound min VALUE max VALUE
+  let Spellings = [Pragma<"", "loopbound">];
+  let Documentation = [LoopBoundDocs];
+  let Args = [DefaultIntArgument<"Min", -1>,
+              DefaultIntArgument<"Max", -1>];
+
+  let AdditionalMembers = [{
+    void printPrettyPragma(raw_ostream &OS, const PrintingPolicy &Policy) const {
+      OS << "min " << getValueString(min, Policy)
+         << "max " << getValueString(max, Policy) << "\n";
+    }
+
+    std::string getValueString(int val, const PrintingPolicy &Policy) const {
+      std::string ValueName;
+      llvm::raw_string_ostream OS(ValueName);
+      OS << val << " ";
+      return OS.str();
+    }
+
+  }];
+}
+
 def TrivialABI : InheritableAttr {
   // This attribute does not have a C [[]] spelling because it requires the
   // CPlusPlus language option.
@@ -2451,6 +2475,13 @@ def Sentinel : InheritableAttr {
               DefaultIntArgument<"NullPos", 0>];
 //  let Subjects = SubjectList<[Function, ObjCMethod, Block, Var]>;
   let Documentation = [Undocumented];
+}
+
+// For targets that support single-path code generation
+def SinglePath : InheritableAttr, TargetSpecificAttr<TargetPatmos> {
+  let Spellings = [GNU<"singlepath">, CXX11<"gnu", "singlepath">];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [SinglePathDocs];
 }
 
 def StdCall : DeclOrTypeAttr {

@@ -428,7 +428,8 @@ namespace {
 /// Get the column at which we want to start printing the instruction
 /// disassembly, taking into account anything which appears to the left of it.
 unsigned getInstStartColumn(const MCSubtargetInfo &STI) {
-  return !ShowRawInsn ? 16 : STI.getTargetTriple().isX86() ? 40 : 24;
+  auto Triple = STI.getTargetTriple();
+  return !ShowRawInsn ? 16 : (STI.getTargetTriple().isX86() || Triple.isPatmos()) ? 40 : 24;
 }
 
 static bool isAArch64Elf(const ObjectFile *Obj) {

@@ -22,6 +22,7 @@
 #include "Hexagon.h"
 #include "MSP430.h"
 #include "PS4CPU.h"
+#include "Patmos.h"
 #include "clang/Basic/CharInfo.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "clang/Basic/LangOptions.h"
@@ -537,6 +538,7 @@ static bool useFramePointerForTargetByDefault(const ArgList &Args,
   case llvm::Triple::ppc64le:
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
+  case llvm::Triple::patmos:
   case llvm::Triple::amdgcn:
   case llvm::Triple::r600:
     return !areOptimizationsEnabled(Args);
@@ -1461,6 +1463,7 @@ static bool isSignedCharDefault(const llvm::Triple &Triple) {
   case llvm::Triple::ppc64le:
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
+  case llvm::Triple::patmos:
   case llvm::Triple::systemz:
   case llvm::Triple::xcore:
     return false;

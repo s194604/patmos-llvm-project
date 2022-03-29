@@ -30,6 +30,7 @@
 #include "Targets/PNaCl.h"
 #include "Targets/PPC.h"
 #include "Targets/RISCV.h"
+#include "Targets/Patmos.h"
 #include "Targets/SPIR.h"
 #include "Targets/Sparc.h"
 #include "Targets/SystemZ.h"
@@ -424,6 +425,13 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new RISCV64TargetInfo(Triple, Opts);
     }
 
+  case llvm::Triple::patmos:
+    switch (os) {
+    case llvm::Triple::RTEMS:
+      return new RTEMSTargetInfo<PatmosTargetInfo>(Triple, Opts);
+    default:
+      return new PatmosTargetInfo(Triple, Opts);
+    }
   case llvm::Triple::sparc:
     switch (os) {
     case llvm::Triple::Linux:

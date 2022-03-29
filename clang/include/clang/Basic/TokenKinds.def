@@ -880,6 +880,12 @@ PRAGMA_ANNOTATION(pragma_openmp_end)
 // handles #pragma loop ... directives.
 PRAGMA_ANNOTATION(pragma_loop_hint)
 
+// Annotations for #pragma loopbound
+// The lexer produces these so that they only take effect when the parser
+// handles #pragma loopbound ... directives.
+PRAGMA_ANNOTATION(pragma_loopbound)
+
+
 PRAGMA_ANNOTATION(pragma_fp)
 
 // Annotation for the attribute pragma directives - #pragma clang attribute ...

@@ -3120,6 +3120,22 @@ have their lifetimes extended.
   }];
 }
 
+def LoopBoundDocs : Documentation {
+  let Category = DocCatFunction;
+  let Content = [{
+The ``loopbound`` attribute indicates the minimum and maximum number
+of iterations a given loop will execute.
+  }];
+}
+
+def SinglePathDocs : Documentation {
+  let Category = DocCatFunction;
+  let Content = [{
+The ``singlepath`` attribute indicates to the compiler
+that the given function should be compiled into single-path code.
+  }];
+}
+
 def TrivialABIDocs : Documentation {
   let Category = DocCatDecl;
   let Content = [{

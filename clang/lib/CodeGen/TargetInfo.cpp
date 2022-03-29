@@ -10970,6 +10970,34 @@ public:
 };
 } // namespace
 
+
+//===----------------------------------------------------------------------===//
+// Patmos ABI Implementation
+//===----------------------------------------------------------------------===//
+namespace {
+class PatmosABIInfo : public DefaultABIInfo {
+public:
+  PatmosABIInfo(CodeGen::CodeGenTypes &CGT) : DefaultABIInfo(CGT) {}
+};
+
+class PatmosTargetCodeGenInfo : public TargetCodeGenInfo {
+public:
+  PatmosTargetCodeGenInfo(CodeGenTypes &CGT)
+    : TargetCodeGenInfo(std::make_unique<PatmosABIInfo>(CGT)) {}
+
+  void setTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
+                           CodeGen::CodeGenModule &CGM) const override {
+    const FunctionDecl *FD = dyn_cast<FunctionDecl>(D);
+    if (!FD) return;
+    llvm::Function *Fn = cast<llvm::Function>(GV);
+    if (FD->hasAttr<SinglePathAttr>()) {
+      Fn->addFnAttr("sp-root");
+      Fn->addFnAttr(llvm::Attribute::NoInline);
+    }
+  }
+};
+}
+
 //===----------------------------------------------------------------------===//
 // VE ABI Implementation.
 //
@@ -11170,6 +11198,9 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
       ABIFLen = 64;
     return SetCGInfo(new RISCVTargetCodeGenInfo(Types, XLen, ABIFLen));
   }
+
+  case llvm::Triple::patmos:
+    return SetCGInfo(new PatmosTargetCodeGenInfo(Types));
 
   case llvm::Triple::systemz: {
     bool SoftFloat = CodeGenOpts.FloatABI == "soft";

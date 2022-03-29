@@ -64,6 +64,7 @@ public:
     mips64,         // MIPS64: mips64, mips64r6, mipsn32, mipsn32r6
     mips64el,       // MIPS64EL: mips64el, mips64r6el, mipsn32el, mipsn32r6el
     msp430,         // MSP430: msp430
+    patmos,         // Patmos: patmos
     ppc,            // PPC: powerpc
     ppcle,          // PPCLE: powerpc (little endian)
     ppc64,          // PPC64: powerpc64, ppu
@@ -751,6 +752,10 @@ public:
   /// Tests whether the target is MIPS (little and big endian, 32- or 64-bit).
   bool isMIPS() const {
     return isMIPS32() || isMIPS64();
+  }
+
+  bool isPatmos() const {
+    return getArch() == Triple::patmos;
   }
 
   /// Tests whether the target is PowerPC (32- or 64-bit LE or BE).

@@ -320,6 +320,7 @@ enum {
   EM_BPF = 247,           // Linux kernel bpf virtual machine
   EM_VE = 251,            // NEC SX-Aurora VE
   EM_CSKY = 252,          // C-SKY 32-bit processor
+  EM_PATMOS = 48875       // T-CREST Patmos processor
 };
 
 // Object file classes.
@@ -499,6 +500,28 @@ enum : unsigned {
 // ELF Relocation types for AVR
 enum {
 #include "ELFRelocs/AVR.def"
+};
+
+// Patmos relocations.
+enum {
+  R_PATMOS_NONE       = 0,
+  R_PATMOS_CFLI_ABS   = 1,
+  R_PATMOS_ALUI_ABS   = 3,
+  R_PATMOS_ALUL_ABS   = 5,
+  R_PATMOS_MEMB_ABS   = 7,
+  R_PATMOS_MEMH_ABS   = 8,
+  R_PATMOS_MEMW_ABS   = 9,
+  R_PATMOS_ABS_32     = 10,
+  R_PATMOS_CFLI_PCREL = 12
+};
+
+// Patmos symbol types.
+enum {
+  // processor-specific symbol type: 13-15
+
+  // Code region cache-able by the method cache. this is similar to STT_FUNC, 
+  // but is intended for sub-sets of functions and not entire functions.
+  STT_CODE = 13
 };
 
 // Mips Specific e_flags

@@ -1,0 +1,3 @@
+patmos_mock_libc_function
+patmos_mock_libm_function
+patmos_mock_crt0_function

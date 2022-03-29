@@ -7780,6 +7780,20 @@ static AttrTy *mergeEnforceTCBAttrImpl(Sema &S, Decl *D, const AttrTy &AL) {
   return ::new(Context) AttrTy(Context, AL, AL.getTCBName());
 }
 
+static void handleSinglePathAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
+  // check the attribute arguments.
+  if (AL.getNumArgs()) {
+    S.Diag(AL.getLoc(), diag::err_attribute_wrong_number_arguments) << AL;
+    return;
+  }
+  // Attribute can only be applied to function types.
+  if (!isa<FunctionDecl>(D)) {
+    S.Diag(AL.getLoc(), diag::err_attribute_wrong_decl_type) << AL;
+    return;
+  }
+  D->addAttr(::new (S.Context) SinglePathAttr(S.Context, AL));
+}
+
 EnforceTCBAttr *Sema::mergeEnforceTCBAttr(Decl *D, const EnforceTCBAttr &AL) {
   return mergeEnforceTCBAttrImpl<EnforceTCBAttr, EnforceTCBLeafAttr>(
       *this, D, AL);
@@ -8437,6 +8451,10 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
 
   case ParsedAttr::AT_UsingIfExists:
     handleSimpleAttribute<UsingIfExistsAttr>(S, D, AL);
+    break;
+
+  case ParsedAttr::AT_SinglePath:
+    handleSinglePathAttr(S, D, AL);
     break;
   }
 }

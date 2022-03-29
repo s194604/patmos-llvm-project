@@ -647,6 +647,58 @@ set(riscv64_SOURCES
   ${riscv_SOURCES}
 )
 
+set(patmos_SOURCES 
+  patmos/clzsi2.c
+  patmos/ctzsi2.c
+  patmos/udivmodsi4.c
+  patmos/udivsi3.c
+  adddf3.c
+  addsf3.c
+  ashldi3.c
+  ashrdi3.c
+  comparedf2.c
+  comparesf2.c
+  divdf3.c
+  divdi3.c
+  divmoddi4.c
+  divmodsi4.c
+  divsf3.c
+  divsi3.c
+  extendsfdf2.c
+  fixdfdi.c
+  fixdfsi.c
+  fixsfdi.c
+  fixsfsi.c
+  fixunsdfdi.c
+  fixunsdfsi.c
+  fixunssfdi.c
+  fixunssfsi.c
+  floatdidf.c
+  floatdisf.c
+  floatsidf.c
+  floatsisf.c
+  floatundidf.c
+  floatundisf.c
+  floatunsidf.c
+  floatunsisf.c
+  fp_mode.c
+  lshrdi3.c
+  moddi3.c
+  modsi3.c
+  muldc3.c
+  muldf3.c
+  muldi3.c
+  mulsc3.c
+  mulsf3.c
+  subdf3.c
+  subsf3.c
+  truncdfsf2.c
+  udivdi3.c
+  udivmoddi4.c
+  umoddi3.c
+  umodsi3.c
+)
+
 set(sparc_SOURCES ${GENERIC_SOURCES} ${GENERIC_TF_SOURCES})
 set(sparcv9_SOURCES ${GENERIC_SOURCES} ${GENERIC_TF_SOURCES})
 

@@ -3181,6 +3181,10 @@ public:
   void EmitIndirectGotoStmt(const IndirectGotoStmt &S);
   void EmitIfStmt(const IfStmt &S);
 
+  // Emits the loop bounds as metadata on a conditional branch instruction
+  void EmitCondBrBounds(llvm::LLVMContext &Context, llvm::BranchInst *CondBr,
+                          const ArrayRef<const Attr *> &Attrs);
+
   void EmitWhileStmt(const WhileStmt &S,
                      ArrayRef<const Attr *> Attrs = None);
   void EmitDoStmt(const DoStmt &S, ArrayRef<const Attr *> Attrs = None);
