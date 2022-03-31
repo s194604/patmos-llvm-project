@@ -1,0 +1,14 @@
+// RUN: %clang --target=patmos -isystem %S/mock-includes/ %s -c -o %t
+// RUN: llvm-objdump -d %t | FileCheck %s
+// END.
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Tests can add an "isystem" include path 
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#include <isystem-test-header.h>
+
+// CHECK: <main>:
+int main() {
+	return CLANG_TEST_DRIVER_PATMOS_MOCK_INCLUDES_ISYSTEM_TEST_HEADER;
+}

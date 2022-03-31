@@ -70,6 +70,7 @@ llvm_config.feature_config(
                           'Hexagon': 'hexagon',
                           'Mips': 'mips',
                           'MSP430': 'msp430',
+                          'Patmos': 'patmos',
                           'PowerPC': 'ppc',
                           'RISCV': 'riscv',
                           'Sparc': 'sparc',

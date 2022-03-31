@@ -1,0 +1,222 @@
+name: 'Build and Test'
+description: 'Builds everything and run all tests.'
+inputs:
+  targets:  
+    description: 'Which target architectures to build for.'
+    required: true
+    default: Patmos
+  default-target:
+    description: 'Which target triple should be the default.'
+    required: true
+    default: patmos-unknown-unknown-elf
+  enable-assertions:
+    description: 'Whether to enable assertions.'
+    required: true
+    default: false
+  exclude-reg:
+    description: 'Exclude regression test. Should be a pipe-separated list.'
+    required: true
+    default: ''
+  include-only:
+    description: 'Include tests, testing only the given. Should be a pipe-separated list.'
+    required: true
+    default: 'Patmos'
+  compiler-rt-tests:
+    description: 'Which folder under build-compiler-rt/test/builtins/Unit/ to test'
+    required: true
+    default: 'patmos'
+  enable-package:
+    description: 'Whether packaging and benchmark testing should be done.'
+    required: true
+    default: true
+  enable-tests:
+    description: 'Wether to run any tests'
+    required: true
+    default: true
+        
+runs:
+  using: "composite"
+  steps:
+    - name: Create build folders
+      shell: bash
+      run: |
+        mkdir -p $BUILD_PATH
+        mkdir -p $COMPILER_RT_BUILD_PATH
+        mkdir -p $NEWLIB_BUILD_PATH
+        mkdir -p $BENCH_BUILD_PATH
+    - run: echo "::group::Configure LLVM Build"
+      shell: bash
+    - working-directory: ${{env.BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+        DEFAULT_TARGET: ${{ inputs.default-target }}
+        ENABLE_ASSERTIONS: ${{ inputs.enable-assertions }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$LLVM_PATH \
+          -DCMAKE_CXX_STANDARD=14 \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_PATH \
+          -DLLVM_TARGETS_TO_BUILD=$TARGETS \
+          -DLLVM_DEFAULT_TARGET_TRIPLE=$DEFAULT_TARGET \
+          -DLLVM_ENABLE_PROJECTS="clang;lld" \
+          -DCLANG_ENABLE_ARCMT=false \
+          -DCLANG_ENABLE_STATIC_ANALYZER=false \
+          -DCLANG_BUILD_EXAMPLES=false \
+          -DLLVM_ENABLE_BINDINGS=false \
+          -DLLVM_INSTALL_BINUTILS_SYMLINKS=false \
+          -DLLVM_INSTALL_CCTOOLS_SYMLINKS=false \
+          -DLLVM_INCLUDE_EXAMPLES=false \
+          -DLLVM_INCLUDE_BENCHMARKS=false \
+          -DLLVM_APPEND_VC_REV=false \
+          -DLLVM_ENABLE_WARNINGS=false \
+          -DLLVM_ENABLE_PEDANTIC=false \
+          -DLLVM_ENABLE_LIBPFM=false \
+          -DLLVM_BUILD_INSTRUMENTED_COVERAGE=false \
+          -DLLVM_INSTALL_UTILS=false \
+          -DLLVM_ENABLE_ASSERTIONS=$ENABLE_ASSERTIONS
+    - name: LLD Tests
+      if: inputs.enable-tests == 'true'
+      uses: ./.github/actions/build-test
+      with:
+        targets: FileCheck count llc llvm-as llvm-bcanalyzer llvm-config llvm-cvtres llvm-dis llvm-dwarfdump llvm-lib llvm-lipo llvm-mc llvm-nm llvm-objdump llvm-pdbutil llvm-readelf llvm-strip llvm-symbolizer not obj2yaml opt split-file yaml2obj lld 
+        path: ${{env.LLD_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
+        include: ${{inputs.include-only}}
+    - name: LLVM Unit Tests
+      if: inputs.enable-tests == 'true'
+      uses: ./.github/actions/build-test
+      with:
+        targets: UnitTests lli llvm-install-name-tool dsymutil lli-child-target llvm-cov llvm-cxxdump llvm-diff llvm-exegesis llvm-extract llvm-isel-fuzzer llvm-ifs llvm-jitlink llvm-opt-fuzzer llvm-link llvm-lto llvm-lto2 llvm-mca llvm-modextract llvm-profdata llvm-ranlib llvm-rc llvm-rtdyld llvm-size llvm-split llvm-strings llvm-undname llvm-c-test llvm-cxxfilt llvm-xray yaml-bench verify-uselistorder bugpoint sancov sanstats llvm-addr2line llvm-otool llvm-profgen llvm-sim llvm-stress llvm-tapi-diff llvm-windres llvm-bitcode-strip split-file llvm-dlltool
+        path: ${{env.LLVM_PATH}}/test
+        working-dir: ${{env.BUILD_PATH}}
+        include: LLVM-Unit.*(${{inputs.include-only}})
+        exclude: ${{inputs.exclude-reg}}
+    - name: LLVM Regression Tests
+      if: inputs.enable-tests == 'true'
+      uses: ./.github/actions/build-test
+      with:
+        targets: BugpointPasses llvm-cat llvm-opt-report llvm-mt llvm-dwp llvm-reduce llvm-lipo llvm-dlltool llvm-cxxmap llvm-cfi-verify split-file llvm-bitcode-strip llvm-dlltool llvm-opt-report llvm-lipo llvm-ml llvm-libtool-darwin llvm-gsymutil llvm-dwp llvm-mt llvm-cfi-verify llvm-cxxmap llvm-cat llvm-reduce llvm-otool llvm-profgen llvm-sim llvm-stress llvm-tapi-diff llvm-windres
+        path: ${{env.LLVM_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
+        include: ${{inputs.include-only}}
+        exclude: LLVM-Unit
+    - name: Clang Unit Tests
+      if: inputs.enable-tests == 'true'
+      uses: ./.github/actions/build-test
+      with:
+        targets: clang-test-depends clang
+        path: ${{env.CLANG_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
+        include: Clang-Unit.*(${{inputs.include-only}})
+        exclude: ${{inputs.exclude-reg}}
+        lit-args: --allow-empty-runs
+    - name: Clang Regression Tests
+      if: inputs.enable-tests == 'true'
+      uses: ./.github/actions/build-test
+      with:
+        targets: apinotes-test c-index-test clang-diff clang-format clang-scan-deps clang-import-test clang-rename diagtool hmaptool clang-refactor
+        path: ${{env.CLANG_PATH}}/test 
+        working-dir: ${{env.BUILD_PATH}}
+        include: ${{inputs.include-only}}
+        exclude: Clang-Unit
+    - name: Build LLVM/Clang
+      #If tests aren't enabled, no LLVM/Clang targets have been built, so build the ones we need
+      if: inputs.enable-tests == 'false'
+      uses: ./.github/actions/build-test
+      with:
+        targets: llc llvm-link clang llvm-config llvm-objdump opt
+        working-dir: ${{env.BUILD_PATH}}
+        enable-tests: false
+    - name: Configure Compiler-RT Build (Non-Patmos)
+      if: ${{ !startsWith(inputs.default-target, 'patmos') }}
+      working-directory: ${{env.COMPILER_RT_BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$COMPILER_RT_PATH \
+          -DCOMPILER_RT_INCLUDE_TESTS=ON \
+          -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+          -DCOMPILER_RT_TEST_COMPILER="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" \
+          -DLLVM_CONFIG_PATH="$GITHUB_WORKSPACE/$BUILD_PATH/bin/llvm-config" \
+          -DCMAKE_C_COMPILER="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" \
+          -DCMAKE_CXX_COMPILER="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang++" \
+          -DCMAKE_C_COMPILER_TARGET="${{inputs.default-target}}"
+    - name: Configure Compiler-RT Build
+      if: startsWith(inputs.default-target, 'patmos')
+      working-directory: ${{env.COMPILER_RT_BUILD_PATH}}
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        cmake $GITHUB_WORKSPACE/$COMPILER_RT_PATH \
+          -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/$COMPILER_RT_PATH/cmake/patmos-clang-toolchain.cmake" \
+          -DCMAKE_PROGRAM_PATH="$GITHUB_WORKSPACE/$BUILD_PATH/bin" \
+          -DCOMPILER_RT_INCLUDE_TESTS=ON
+    - name: Compiler-RT Unit Tests
+      uses: ./.github/actions/build-test
+      with:
+        targets: '' 
+        path: ${{env.COMPILER_RT_BUILD_PATH}}/test/builtins/Unit/${{inputs.compiler-rt-tests}}
+        working-dir: ${{env.COMPILER_RT_BUILD_PATH}}
+        exclude: ${{inputs.exclude-reg}}
+        enable-tests: ${{ inputs.enable-tests }}
+    - name: Download Newlib
+      if: inputs.enable-package == 'true'
+      env:
+        NEWLIB_COMMIT: 1304d2463ae91470d898c92216729175325afde1
+      shell: bash
+      run: |
+        git clone https://github.com/emoun/patmos-newlib ${{env.NEWLIB_PATH}}
+        cd ${{env.NEWLIB_PATH}}
+        git checkout $NEWLIB_COMMIT
+    # Builds newlib to Patmos assembly (instead of bitcode)
+    # to ensure that it compiles successfully
+    - name: Test-Build Newlib
+      if: (inputs.enable-package == 'true') && (inputs.enable-tests == 'true')
+      working-directory: ${{env.NEWLIB_BUILD_PATH}}
+      shell: bash
+      run: |
+        $GITHUB_WORKSPACE/$NEWLIB_PATH/configure --target=patmos-unknown-unknown-elf AR_FOR_TARGET=ar CC_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" CFLAGS_FOR_TARGET="-target patmos-unknown-unknown-elf -O2 -D__GLIBC_USE\(...\)=0" RANLIB_FOR_TARGET=ranlib LD_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang"
+        make $J
+        rm -rf *
+    # Build newlib properly to LLVM-IR
+    - name: Build Newlib
+      if: inputs.enable-package == 'true'
+      working-directory: ${{env.NEWLIB_BUILD_PATH}}
+      shell: bash
+      run: |
+        $GITHUB_WORKSPACE/$NEWLIB_PATH/configure --target=patmos-unknown-unknown-elf AR_FOR_TARGET=ar CC_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang" CFLAGS_FOR_TARGET="-target patmos-unknown-unknown-elf -O2 -emit-llvm -D__GLIBC_USE\(...\)=0" RANLIB_FOR_TARGET=ranlib LD_FOR_TARGET="$GITHUB_WORKSPACE/$BUILD_PATH/bin/clang"
+        make $J
+    # Package Compiler
+    - name: Build Package
+      working-directory: ${{env.BUILD_PATH}}
+      if: inputs.enable-package == 'true'
+      shell: bash
+      run: make $J PatmosPackage
+    # Install Package
+    - name: Download Benchmark test suite
+      working-directory: ${{env.BUILD_PATH}}
+      if: (inputs.enable-package == 'true') && (inputs.enable-tests == 'true')
+      shell: bash
+      run: tar -xvf $(find . -name 'patmos-llvm-*.tar.gz') -C $GITHUB_WORKSPACE/$INSTALL_PATH
+    # Download Benchmark
+    - name: Download Benchmark test suite
+      if: (inputs.enable-package == 'true') && (inputs.enable-tests == 'true')
+      env:
+        BENCH_COMMIT: 197791f2583906b76f2cd6b2abe66fed3ddc318b
+      shell: bash
+      run: |
+        git clone https://github.com/emoun/patmos-benchmarks ${{env.BENCH_PATH}}
+        cd ${{env.BENCH_PATH}}
+        git checkout $BENCH_COMMIT
+    # Build & Tests Benchmarks
+    - name: Build & Test Benchmarks
+      if: (inputs.enable-package == 'true') && (inputs.enable-tests == 'true')
+      working-directory: ${{env.BENCH_BUILD_PATH}}
+      shell: bash
+      run: |
+        cmake $GITHUB_WORKSPACE/$BENCH_PATH -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/$BENCH_PATH/cmake/patmos-clang-toolchain.cmake -DENABLE_TESTING=true
+        make $J
+        ctest $J --rerun-failed --output-on-failure

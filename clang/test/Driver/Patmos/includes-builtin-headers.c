@@ -1,0 +1,19 @@
+// RUN: %clang --target=patmos %s -c -o %t
+// RUN: llvm-objdump -d %t | FileCheck %s
+// END.
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Tests that the builtin include-paths (e.g. lib/clang/12.0.1/include/) are
+// are available.
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#include <stddef.h>
+
+#ifndef __STDDEF_H
+#error Didn't use builtin headers!
+#endif
+
+// CHECK: <main>:
+int main() {
+	return 0;
+}

@@ -1,0 +1,141 @@
+name: Patmos CI
+
+on:
+  push: 
+    branches: '**'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-**'
+  pull_request:
+  schedule:
+    # Run every monday at 1:00 AM
+    - cron: '00 1 * * MON'
+
+env:
+  CARGO_TERM_COLOR: always
+  J: -j2
+  BUILD_PATH: build
+  INSTALL_PATH: build/local
+  LLVM_PATH: llvm
+  CLANG_PATH: clang
+  COMPILER_RT_PATH: compiler-rt
+  COMPILER_RT_BUILD_PATH: build-compiler-rt
+  NEWLIB_PATH: patmos-newlib
+  NEWLIB_BUILD_PATH: build-newlib
+  BENCH_PATH: patmos-benchmarks
+  BENCH_BUILD_PATH: build-bench
+  LLD_PATH: lld
+  
+jobs:
+  test-non-patmos:
+    name: Test Non-Patmos
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    env: 
+      CC: gcc-9
+      CXX: g++-9
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and Run LLVM Unit and Regression Tests
+        uses: ./.github/actions/build-test-all
+        with:
+          targets: X86
+          enable-assertions: true
+          # Exclude known failing tests
+          exclude-reg: "(Clang :: Lexer/case-insensitive-include.c)|(Clang :: Lexer/case-insensitive-system-include.c)|(Clang :: Modules/inferred-framework-case.m)|(Clang :: Preprocessor/nonportable-include-with-hmap.c)"
+          include-only: "."
+          default-target: x86_64-unknown-linux-gnu
+          compiler-rt-tests: 'X86_64LinuxConfig'
+          enable-package: false
+      - name: Finalize LLVM Build
+        working-directory: ${{env.BUILD_PATH}}
+        run: make $J llc llvm-link clang llvm-config llvm-objdump opt
+  
+  test-patmos:
+    name: Test (${{matrix.platform}})
+    runs-on: ${{matrix.platform}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: 
+          - platform: ubuntu-18.04
+            cc: gcc-9
+            cxx: g++-9
+            simulator_link: https://github.com/t-crest/patmos-simulator/releases/download/1.0.2/patmos-simulator-x86_64-linux-gnu.tar.gz
+          - platform: macOS-10.15
+            cc: clang
+            cxx: clang++
+            simulator_link: https://github.com/t-crest/patmos-simulator/releases/download/1.0.2/patmos-simulator-x86_64-apple-darwin17.7.0.tar.gz
+          
+    env:
+      SIMULAROT_TAR: patmos-simulator.tar.gz
+      CC: ${{matrix.cc}}
+      CXX: ${{matrix.cxx}}
+      SIMULATOR_LINK: ${{matrix.simulator_link}}
+    
+    steps:
+      - if: startsWith(matrix.platform, 'macOs')
+        name: Install GNU-tar as 'tar'
+        run: |
+          brew install gnu-tar
+          # Set gtar to be available as 'tar'
+          echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> $GITHUB_PATH
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: |
+          mkdir -p $INSTALL_PATH
+          cd $INSTALL_PATH
+          # Dowload Dependencies
+          wget -O $SIMULAROT_TAR $SIMULATOR_LINK
+          # Extract dependencies
+          tar -xvf $SIMULAROT_TAR
+          # Set path
+          echo "$GITHUB_WORKSPACE/$INSTALL_PATH/bin" >> $GITHUB_PATH
+      - name: Build and Run LLVM Unit and Regression Tests
+        uses: ./.github/actions/build-test-all
+        with:
+          enable-assertions: true
+  release:
+    name: Release (${{matrix.platform}})
+    runs-on: ${{matrix.platform}}
+    permissions:
+      contents: write 
+    strategy:
+      fail-fast: true
+      matrix:
+        include: 
+          - platform: ubuntu-18.04
+            cc: gcc-9
+            cxx: g++-9
+          - platform: macOS-10.15
+            cc: clang
+            cxx: clang++
+    # Run after the test jobs finish      
+    needs: [test-patmos, test-non-patmos]
+    # Run only if this was triggered by a tag
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    env:
+      RELEASE_TAR: patmos-llvm*.tar.gz
+      PATMOS_TRIPLE: patmos-unknown-unknown-elf
+      CC: ${{matrix.cc}}
+      CXX: ${{matrix.cxx}}
+    
+    steps:
+      - if: startsWith(matrix.platform, 'macOs')
+        name: Install GNU-tar as 'tar'
+        run: |
+          brew install gnu-tar
+          # Set gtar to be available as 'tar'
+          echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> $GITHUB_PATH
+      - uses: actions/checkout@v2
+      - name: Build LLVM, Compiler-RT, Newlib, and Package
+        uses: ./.github/actions/build-test-all
+        with:
+          enable-assertions: false
+          enable-tests: false
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.BUILD_PATH}}/patmos-unknown-unknown-elf/package-temp/patmos-llvm-*.tar.gz
+      

@@ -35,6 +35,7 @@
 #include "ToolChains/MinGW.h"
 #include "ToolChains/Minix.h"
 #include "ToolChains/MipsLinux.h"
+#include "ToolChains/Patmos.h"
 #include "ToolChains/Myriad.h"
 #include "ToolChains/NaCl.h"
 #include "ToolChains/NetBSD.h"
@@ -5653,6 +5654,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
               std::make_unique<toolchains::RISCVToolChain>(*this, Target, Args);
         else
           TC = std::make_unique<toolchains::BareMetal>(*this, Target, Args);
+        break;
+      case llvm::Triple::patmos:
+        TC = std::make_unique<toolchains::PatmosToolChain>(*this, Target, Args);
         break;
       case llvm::Triple::ve:
         TC = std::make_unique<toolchains::VEToolChain>(*this, Target, Args);

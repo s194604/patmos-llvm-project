@@ -809,6 +809,44 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ContBlock, true);
 }
 
+// Emits loop bounds on the given conditional branch (assuming its
+// the branch that controls the condition of the loop.
+//
+// Current implementation overwrites any "llvm.loop" attribute on the
+// instruction, meaning it doesn't play well with other loop hints,
+// e.g. "unroll".
+void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
+                                       llvm::BranchInst *CondBr,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  auto is_bound = [](auto attr){ return dyn_cast<LoopBoundAttr>(attr); };
+
+  assert(std::count_if(Attrs.begin(), Attrs.end(), is_bound) <= 1 &&
+      "We don't support multiple bounds on the same loop");
+
+  // Look for any loopbound attribute
+  auto foundLB = std::find_if(Attrs.begin(), Attrs.end(),is_bound);
+  if( foundLB != Attrs.end() ) {
+    auto LB = dyn_cast<LoopBoundAttr>(*foundLB); // Guaranteed to work
+
+    const char *MetadataName = "llvm.loop.bound";
+    llvm::MDString *Name = llvm::MDString::get(Context, MetadataName);
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    SmallVector<llvm::Metadata *, 3> OpValues;
+    OpValues.push_back(Name);
+    OpValues.push_back(llvm::ValueAsMetadata::get(MinVal));
+    OpValues.push_back(llvm::ValueAsMetadata::get(MaxVal));
+
+    SmallVector<llvm::Metadata *, 2> Metadata(1);
+    Metadata.push_back(llvm::MDNode::get(Context, OpValues));
+    llvm::MDNode *LoopID = llvm::MDNode::get(Context, Metadata);
+    LoopID->replaceOperandWith(0, LoopID); // First op points to itself.
+
+    CondBr->setMetadata("llvm.loop", LoopID);
+  }
+}
+
 void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
                                     ArrayRef<const Attr *> WhileAttrs) {
   // Emit the header for the loop, which will also become
@@ -862,12 +900,15 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
     if (!Weights && CGM.getCodeGenOpts().OptimizationLevel)
       BoolCondVal = emitCondLikelihoodViaExpectIntrinsic(
           BoolCondVal, Stmt::getLikelihood(S.getBody()));
-    Builder.CreateCondBr(BoolCondVal, LoopBody, ExitBlock, Weights);
+    llvm::BranchInst *CondBr = Builder.CreateCondBr(BoolCondVal, LoopBody, ExitBlock, Weights);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);
       EmitBranchThroughCleanup(LoopExit);
     }
+
+  // Attach metadata to loop body conditional branch.
+  EmitCondBrBounds(LoopBody->getContext(), CondBr, WhileAttrs);
   } else if (const Attr *A = Stmt::getLikelihoodAttr(S.getBody())) {
     CGM.getDiags().Report(A->getLocation(),
                           diag::warn_attribute_has_no_effect_on_infinite_loop)
@@ -953,9 +994,12 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
   // As long as the condition is true, iterate the loop.
   if (EmitBoolCondBranch) {
     uint64_t BackedgeCount = getProfileCount(S.getBody()) - ParentCount;
-    Builder.CreateCondBr(
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(
         BoolCondVal, LoopBody, LoopExit.getBlock(),
         createProfileWeightsForLoop(S.getCond(), BackedgeCount));
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, DoAttrs);
   }
 
   LoopStack.pop();
@@ -1043,7 +1087,10 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
       BoolCondVal = emitCondLikelihoodViaExpectIntrinsic(
           BoolCondVal, Stmt::getLikelihood(S.getBody()));
 
-    Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock, Weights);
+    llvm::BranchInst *CondBr = Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock, Weights);
+
+    // Attach metadata to loop body conditional branch.
+	EmitCondBrBounds(ForBody->getContext(), CondBr, ForAttrs);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);
@@ -1127,7 +1174,10 @@ CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
   if (!Weights && CGM.getCodeGenOpts().OptimizationLevel)
     BoolCondVal = emitCondLikelihoodViaExpectIntrinsic(
         BoolCondVal, Stmt::getLikelihood(S.getBody()));
-  Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock, Weights);
+  llvm::BranchInst *CondBr = Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock, Weights);
+
+  // Attach metadata to loop body conditional branch.
+  EmitCondBrBounds(ForBody->getContext(), CondBr, ForAttrs);
 
   if (ExitBlock != LoopExit.getBlock()) {
     EmitBlock(ExitBlock);

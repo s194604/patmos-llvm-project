@@ -1,0 +1,26 @@
+// RUN: %clang --target=patmos %s %S/helpers/helper-function.c -o %t
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Tests can compile programs
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// RUN: %clang --target=patmos -c -emit-llvm %s -o %t1
+// RUN: %clang --target=patmos -c -emit-llvm %S/helpers/helper-function.c -o %t2
+// RUN: %clang --target=patmos %t1 %t2 -o %t
+// RUN: %clang --target=patmos %t2 %t1 -o %t
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Tests can compile each file in a multi-file program separately to bitcode before then compiling
+// the bitcode files together.
+//
+// Ensure that either order of source file can be given.
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// END.
+
+extern int helper_source_function(int);
+
+int main() { 
+	return helper_source_function(4);
+}
