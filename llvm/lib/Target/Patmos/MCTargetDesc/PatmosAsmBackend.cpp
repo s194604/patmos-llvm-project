@@ -134,7 +134,7 @@ getFixupKindInfo(MCFixupKind Kind) const {
 /// it should return an error.
 ///
 /// \return - True on success.
-bool PatmosAsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
+bool PatmosAsmBackend::writeNopData(raw_ostream &OS, uint64_t Count, const MCSubtargetInfo *STI) const {
   // Count is in terms of of ValueSize, which is always 1 Byte for ELF.
   // This method is used to create a NOP slide for code segment alignment  
   // OW handles byteorder stuff.

@@ -88,7 +88,8 @@ namespace llvm {
   private:
     /// mark the start of an subfunction relocation area.
     void EmitFStart(MCSymbol *SymStart, MCSymbol *SymEnd,
-                    Align Alignment);
+                    Align Alignment,
+                    const MCSubtargetInfo *STI);
 
     bool isFStart(const MachineBasicBlock *MBB) const;
   };

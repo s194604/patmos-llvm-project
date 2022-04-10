@@ -70,7 +70,7 @@ public:
     return false;
   }
 
-  bool writeNopData(raw_ostream &OS, uint64_t Count) const override;
+  bool writeNopData(raw_ostream &OS, uint64_t Count, const MCSubtargetInfo *STI) const override;
 
 }; // class PatmosAsmBackend
 

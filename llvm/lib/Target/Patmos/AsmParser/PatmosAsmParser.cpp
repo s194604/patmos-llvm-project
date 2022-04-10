@@ -952,7 +952,7 @@ bool PatmosAsmParser::ParseDirectiveFStart(SMLoc L) {
   PatmosTargetStreamer *PTS = static_cast<PatmosTargetStreamer*>(
                                  getParser().getStreamer().getTargetStreamer());
 
-  PTS->EmitFStart(Start, Length, Align(align));
+  PTS->EmitFStart(Start, Length, Align(align), &getSTI());
 
   return false;
 }

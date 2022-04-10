@@ -276,7 +276,7 @@ SDValue PatmosTargetLowering::LowerMUL_LOHI(SDValue Op,
 }
 
 SDValue PatmosTargetLowering::LowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const {
-  auto MFI = DAG.getMachineFunction().getFrameInfo();
+  MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
   MFI.setReturnAddressIsTaken(true);
 
   EVT VT = Op.getValueType();
@@ -294,7 +294,7 @@ SDValue PatmosTargetLowering::LowerRETURNADDR(SDValue Op, SelectionDAG &DAG) con
 }
 
 SDValue PatmosTargetLowering::LowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const {
-  auto MFI = DAG.getMachineFunction().getFrameInfo();
+  MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
   MFI.setFrameAddressIsTaken(true);
 
   EVT VT = Op.getValueType();

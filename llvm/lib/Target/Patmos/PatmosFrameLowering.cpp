@@ -51,7 +51,7 @@ static cl::opt<bool> EnableBlockAlignedStackCache
            cl::desc("Enable the use of Patmos' block-aligned stack cache"));
 
 bool PatmosFrameLowering::hasFP(const MachineFunction &MF) const {
-  auto MFI = MF.getFrameInfo();
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
 
   // Naked functions should not use the stack, they do not get a frame pointer.
   if (MF.getFunction().hasFnAttribute(Attribute::Naked))

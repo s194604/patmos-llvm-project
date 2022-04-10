@@ -27,8 +27,9 @@ public:
   ///                immediately after this directive.
   /// \param Size - The size of the block in bytes.
   /// \param Alignment - The alignment in bytes, should be a power of 2.
+  /// \param STI - Target info necessary for some functions.
   virtual void EmitFStart(const MCSymbol *Start, const MCExpr* Size,
-                          Align Alignment) = 0;
+                          Align Alignment, const MCSubtargetInfo *STI) = 0;
 };
 
 // This part is for ascii assembly output
@@ -38,8 +39,8 @@ class PatmosTargetAsmStreamer : public PatmosTargetStreamer {
 public:
   PatmosTargetAsmStreamer(MCStreamer &S,formatted_raw_ostream &OS);
 
-  void EmitFStart(const MCSymbol *Start, const MCExpr* Size,
-                  Align Alignment) override;
+  void EmitFStart(const MCSymbol *Start, const MCExpr* Size, Align Alignment,
+                  const MCSubtargetInfo *STI) override;
 };
 
 // This part is for ELF object output
@@ -47,8 +48,8 @@ class PatmosTargetELFStreamer : public PatmosTargetStreamer {
 public:
   PatmosTargetELFStreamer(MCStreamer &S);
 
-  void EmitFStart(const MCSymbol *Start, const MCExpr* Size,
-                  Align Alignment) override;
+  void EmitFStart(const MCSymbol *Start, const MCExpr* Size, Align Alignment,
+                  const MCSubtargetInfo *STI) override;
 };
 
 }

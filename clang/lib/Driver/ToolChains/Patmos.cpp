@@ -166,7 +166,8 @@ Arg* patmos::PatmosBaseTool::GetOptLevel(const ArgList &Args, char &Lvl) const {
   if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
     std::string Opt = A->getAsString(Args);
     if (Opt.length() != 3) {
-      llvm::report_fatal_error("Unsupported optimization option: " + Opt);
+      StringRef reason = "Unsupported optimization option: " + Opt;
+      llvm::report_fatal_error(reason);
     }
     Lvl = Opt[2];
     return A;

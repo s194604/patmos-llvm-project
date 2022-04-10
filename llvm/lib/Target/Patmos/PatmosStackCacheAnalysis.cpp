@@ -2324,7 +2324,8 @@ namespace llvm {
                               llvm::None,
                               llvm::ArrayRef<Optional<StringRef>>(),
                               0,0,&ErrMsg)) {
-        report_fatal_error("calling ILP solver (" + Solve_ilp + "): " + ErrMsg);
+        StringRef reason = "calling ILP solver (" + Solve_ilp + "): " + ErrMsg;
+        report_fatal_error(reason);
       }
       else {
         // read solution

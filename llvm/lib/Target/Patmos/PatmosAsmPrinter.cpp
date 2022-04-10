@@ -55,7 +55,7 @@ void PatmosAsmPrinter::emitFunctionEntryLabel() {
   CurrCodeEnd = OutContext.createTempSymbol();
 
   // emit a function/subfunction start directive
-  EmitFStart(CurrentFnSymForSize, CurrCodeEnd, FStartAlignment);
+  EmitFStart(CurrentFnSymForSize, CurrCodeEnd, FStartAlignment, TM.getMCSubtargetInfo());
 
   // Now emit the normal function label
   AsmPrinter::emitFunctionEntryLabel();
@@ -90,7 +90,7 @@ void PatmosAsmPrinter::emitBasicBlockStart(const MachineBasicBlock &MBB) {
     emitDotSize(SymStart, CurrCodeEnd);
 
     // emit a function/subfunction start directive
-    EmitFStart(SymStart, CurrCodeEnd, FStartAlignment);
+    EmitFStart(SymStart, CurrCodeEnd, FStartAlignment, TM.getMCSubtargetInfo());
   }
 
   // We remove any alignment assigned to the block, to ensure
@@ -175,7 +175,7 @@ void PatmosAsmPrinter::emitDotSize(MCSymbol *SymStart, MCSymbol *SymEnd) {
 }
 
 void PatmosAsmPrinter::EmitFStart(MCSymbol *SymStart, MCSymbol *SymEnd,
-                                     Align Alignment) {
+                                     Align Alignment, const MCSubtargetInfo *STI) {
   // emit .fstart SymStart, SymEnd-SymStart
   const MCExpr *SizeExpr =
     MCBinaryExpr::createSub(MCSymbolRefExpr::create(SymEnd,   OutContext),
@@ -185,7 +185,7 @@ void PatmosAsmPrinter::EmitFStart(MCSymbol *SymStart, MCSymbol *SymEnd,
   PatmosTargetStreamer *PTS =
             static_cast<PatmosTargetStreamer*>(OutStreamer->getTargetStreamer());
 
-  PTS->EmitFStart(SymStart, SizeExpr, Alignment);
+  PTS->EmitFStart(SymStart, SizeExpr, Alignment, STI);
 }
 
 bool PatmosAsmPrinter::isFStart(const MachineBasicBlock *MBB) const {

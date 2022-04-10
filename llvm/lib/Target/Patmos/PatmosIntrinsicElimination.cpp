@@ -212,8 +212,8 @@ static bool eliminateIntrinsic(Function &F, BasicBlock &BB) {
                     auto *dest_phi = std::get<0>(cond_ret);
                     auto *src_phi = std::get<1>(cond_ret);
 
-                    auto *dest_inc = builder.CreateGEP(dest_phi, builder.getInt32(1), "llvm.memcpy.dest.incremented");
-                    auto *src_inc = builder.CreateGEP(src_phi, builder.getInt32(1), "llvm.memcpy.src.incremented");
+                    auto *dest_inc = builder.CreateGEP(PointerType::get(builder.getInt32Ty(),0), dest_phi, builder.getInt32(1), "llvm.memcpy.dest.incremented");
+                    auto *src_inc = builder.CreateGEP(PointerType::get(builder.getInt32Ty(),0), src_phi, builder.getInt32(1), "llvm.memcpy.src.incremented");
                     dest_phi->addIncoming(dest_inc, body_block);
                     src_phi->addIncoming(src_inc, body_block);
 
@@ -276,7 +276,7 @@ static bool eliminateIntrinsic(Function &F, BasicBlock &BB) {
                     return dest_phi;
                   },
                   [&](auto &builder, auto entry_block, auto entry_ret, auto condition_block, auto *dest_phi, auto body_block){
-                    auto *dest_inc = builder.CreateGEP(dest_phi, builder.getInt32(1), "llvm.memset.dest.incremented");
+                    auto *dest_inc = builder.CreateGEP(PointerType::get(builder.getInt32Ty(),0), dest_phi, builder.getInt32(1), "llvm.memset.dest.incremented");
                     dest_phi->addIncoming(dest_inc, body_block);
                     auto align = II->paramHasAttr(0, Attribute::Alignment) ?
                        II->getParamAttr(0, Attribute::Alignment).getAlignment()
